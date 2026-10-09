@@ -1,0 +1,5 @@
+-r requirements.txt
+pytest==8.3.3
+# FastAPI TestClient uses httpx; the tests also import httpx2 (the Anthropic SDK's HTTP layer)
+httpx==0.27.2
+httpx2>=2.0

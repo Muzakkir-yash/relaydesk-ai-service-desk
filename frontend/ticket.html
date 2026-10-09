@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ticket Details — NexusIT Service Desk</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    .briefing-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 12px;
+    }
+    .briefing-box {
+      background: #ffffff;
+      border: 1px solid #e9d5ff;
+      border-radius: var(--radius-md);
+      padding: 12px 14px;
+    }
+    .briefing-label {
+      font-size: 10.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #7e22ce;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .briefing-value {
+      font-size: 12.5px;
+      color: #3b0764;
+      line-height: 1.5;
+    }
+    .canned-chip {
+      background: #f1f5f9;
+      border: 1px solid var(--border-main);
+      border-radius: var(--radius-full);
+      padding: 4px 10px;
+      font-size: 11.5px;
+      font-weight: 600;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .canned-chip:hover {
+      background: var(--primary-subtle);
+      border-color: var(--primary-border);
+      color: var(--primary);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="app-container">
+    <div class="main-wrapper">
+      <main class="content-body">
+        <div class="container-narrow">
+          
+          <!-- Back Link -->
+          <a id="back-link" href="/queue.html" class="back-link">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+            Back to Queue
+          </a>
+
+
+          <!-- Top Banner: AI Deflection Action (When Open / End User) -->
+          <div id="ai-deflection-banner" style="display: none; background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: var(--radius-lg); padding: 18px 22px; margin-bottom: 20px; align-items: center; justify-content: space-between; gap: 16px; box-shadow: var(--shadow-sm);">
+            <div>
+              <div style="font-weight: 800; font-size: 14.5px; color: #065f46; display: flex; align-items: center; gap: 6px;">
+                <span>✨</span>
+                <span>Automated Solution Available</span>
+              </div>
+              <div style="font-size: 12.5px; color: #047857; margin-top: 2px;">
+                Did our AI troubleshooting guidance resolve your issue? Let us know so we can close this ticket or connect you with a technician.
+              </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px; flex-shrink: 0;">
+              <button id="deflect-fix-btn" class="btn btn-sm" style="background: #10b981; color: white; font-weight: 700;">
+                ✓ Yes, It's Fixed!
+              </button>
+              <button id="deflect-escalate-btn" class="btn btn-sm btn-secondary" style="color: #065f46; border-color: #a7f3d0; background: #ffffff; font-weight: 600;">
+                Still Broken (Escalate)
+              </button>
+            </div>
+          </div>
+
+          <!-- Ticket Header Overview Card -->
+          <div class="card" style="padding: 24px;">
+            <div style="display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 16px;">
+              <div>
+                <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 8px;">
+                  <span style="font-size: 13px; font-weight: 800; color: var(--primary);" id="ticket-id-badge">#--</span>
+                  <span class="category-pill" id="ticket-cat-badge">Category</span>
+                  <span class="category-pill" id="ticket-branch-badge">📍 Office Branch</span>
+                  <!-- Pill status -->
+                  <span class="badge-text" id="ticket-status-badge">Status</span>
+                  <!-- Pill priority -->
+                  <span class="badge-text" id="ticket-priority-badge">Priority</span>
+                </div>
+                <h1 style="font-size: 22px; font-weight: 800; color: var(--text-main); margin-top: 2px;" id="ticket-title">Loading Ticket...</h1>
+              </div>
+
+              <!-- SLA Countdown Timer & Technician Actions -->
+              <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                <div id="sla-container" class="sla-timer sla-safe">
+                  <span>⏱ SLA:</span>
+                  <span id="sla-countdown">Calculating...</span>
+                </div>
+
+                <!-- Tech/Admin Status Quick Actions -->
+                <div id="tech-controls" style="display: none; align-items: center; gap: 8px;">
+                  <button id="claim-ticket-btn" class="btn btn-secondary btn-sm">Claim Ticket</button>
+                  <button id="resolve-ticket-btn" class="btn btn-primary btn-sm" style="background: #10b981; border-color: #10b981;">Mark Resolved</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Description -->
+            <div style="margin-top: 18px; padding: 16px; background: var(--bg-card-subtle); border-radius: var(--radius-md); border: 1px solid var(--border-subtle); font-size: 13.5px; color: var(--text-main); line-height: 1.6;" id="ticket-description">
+              ...
+            </div>
+          </div>
+
+          <!-- Zero-Context Handover Briefing Panel (Technicians & Admins) -->
+          <div id="briefing-card" class="card" style="display: none; background: #faf5ff; border: 1px solid #e9d5ff; padding: 22px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+              <div style="font-size: 15px; font-weight: 800; color: #6b21a8; display: flex; align-items: center; gap: 8px;">
+                <span>⚡</span>
+                <span>AI Diagnostic Handover Briefing</span>
+              </div>
+              <span style="font-size: 10.5px; font-weight: 700; text-transform: uppercase; padding: 3px 10px; border-radius: var(--radius-full); background: #f3e8ff; color: #7e22ce; border: 1px solid #d8b4fe;">
+                Zero Context Loss Handover
+              </span>
+            </div>
+            
+            <div id="briefing-structured-content">
+              <!-- Dynamically populated formatted briefing -->
+              <div style="font-size: 13px; color: #581c87; line-height: 1.6;" id="briefing-summary">
+                Analyzing ticket history...
+              </div>
+            </div>
+          </div>
+
+          <!-- Device Context Card & SOP Playbooks (For Technician / Admin) -->
+          <div id="device-context-section" class="card" style="display: none; padding: 22px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+              <div>
+                <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-subtle);">Device Context & Telemetry</div>
+                <div style="font-size: 14.5px; font-weight: 700; color: var(--text-main); margin-top: 1px;" id="dev-hostname">Host: CORP-WORKSTATION</div>
+              </div>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <button id="ping-device-btn" class="btn btn-secondary btn-sm">⚡ Ping Host</button>
+                <button id="open-sop-btn" class="btn btn-primary btn-sm">Run SOP Playbook</button>
+              </div>
+            </div>
+
+            <div class="device-grid">
+              <div class="device-metric">
+                <div class="device-metric-label">IPv4 Address</div>
+                <div class="device-metric-value" id="dev-ip">10.240.14.88</div>
+              </div>
+              <div class="device-metric">
+                <div class="device-metric-label">Operating System</div>
+                <div class="device-metric-value" id="dev-os">Windows 11 Enterprise (23H2)</div>
+              </div>
+              <div class="device-metric">
+                <div class="device-metric-label">Memory Usage</div>
+                <div class="device-metric-value" id="dev-ram">62% (9.9 GB / 16.0 GB)</div>
+              </div>
+              <div class="device-metric">
+                <div class="device-metric-label">System Drive Disk</div>
+                <div class="device-metric-value" id="dev-disk">142 GB free of 512 GB NVMe</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- End-User CSAT Satisfaction Rating Card (When Ticket is Resolved or Deflected) -->
+          <div id="rating-section" style="display: none; margin-bottom: 24px;"></div>
+
+          <!-- Message Thread & Chronological Activity Feed -->
+          <div class="card" style="padding: 24px;">
+            <div style="font-size: 16px; font-weight: 700; color: var(--text-main); margin-bottom: 18px; display: flex; align-items: center; justify-content: space-between;">
+              <span>Activity & Conversation</span>
+              <span style="font-size: 11.5px; font-weight: normal; color: var(--text-muted);" id="msg-count-indicator"></span>
+            </div>
+
+            <div id="messages-list" style="display: flex; flex-direction: column; gap: 14px; margin-bottom: 24px;">
+              <div style="text-align: center; color: var(--text-muted); font-size: 13px; padding: 24px;">Loading conversation...</div>
+            </div>
+
+            <!-- Reply Box -->
+            <form id="reply-form" style="border-top: 1px solid var(--border-subtle); padding-top: 18px;">
+              <!-- Quick Response Chips -->
+              <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 10px;">
+                <span style="font-size: 11px; font-weight: 700; color: var(--text-subtle);">Quick insert:</span>
+                <button type="button" class="canned-chip" data-text="I have verified this step and the issue is resolved. Thank you!">
+                  ✅ Verified & resolved
+                </button>
+                <button type="button" class="canned-chip" data-text="Please perform a full computer restart and attempt to connect again.">
+                  🔄 Restart computer
+                </button>
+                <button type="button" class="canned-chip" data-text="Could you please take a screenshot of the exact error dialog and reply here?">
+                  📸 Request screenshot
+                </button>
+                <button type="button" class="canned-chip" data-text="Re-authenticating MFA token in Cisco AnyConnect resolved the connectivity.">
+                  🔑 Refresh MFA
+                </button>
+              </div>
+
+              <!-- Attachment Previews -->
+              <div id="pending-attachments-list" style="display: none; flex-wrap: wrap; gap: 8px; margin-bottom: 10px;"></div>
+
+              <div class="form-group" style="margin-bottom: 12px;">
+                <textarea id="reply-input" class="form-textarea" placeholder="Type a message or response here... (Ctrl + Enter to send, or paste screenshot Ctrl+V)" style="min-height: 90px;"></textarea>
+              </div>
+              <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                  <label class="btn btn-ghost btn-sm" style="cursor: pointer; display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border: 1px solid var(--border-main); background: #ffffff;">
+                    <span>📎 Attach File / Screenshot</span>
+                    <input type="file" id="file-attachment-input" multiple accept="image/*,.pdf,.log,.txt" style="display: none;">
+                  </label>
+                  <span style="font-size: 11.5px; color: var(--text-subtle);">💡 Press <kbd style="background: #f1f5f9; padding: 2px 6px; border-radius: 4px; border: 1px solid #cbd5e1; font-family: monospace;">Ctrl+Enter</kbd> to send</span>
+                </div>
+                <button type="submit" id="send-reply-btn" class="btn btn-primary btn-sm" style="padding: 8px 20px;">
+                  Send Message
+                </button>
+              </div>
+            </form>
+          </div>
+
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script type="module">
+    import { requireAuth } from './js/auth.js';
+    import { renderLayout, showToast } from './js/app.js';
+    import { apiRequest } from './js/api.js';
+    import { escapeHtml, safeUrl } from './js/utils.js';
+    import { openPlaybookModal } from './js/playbooks.js';
+
+    const user = requireAuth();
+    if (user) {
+      renderLayout('Ticket Details', '/tickets.html');
+
+      const urlParams = new URLSearchParams(window.location.search);
+      const ticketId = urlParams.get('id');
+
+      if (!ticketId) {
+        showToast('No ticket ID specified', 'error');
+        setTimeout(() => window.location.href = '/tickets.html', 1000);
+      }
+
+      let currentTicket = null;
+      let slaInterval = null;
+
+      async function loadTicketData() {
+        try {
+          const t = await apiRequest(`/tickets/${ticketId}`);
+          currentTicket = t;
+          renderTicketDetails(t);
+          loadMessages();
+        } catch (err) {
+          showToast('Failed to load ticket: ' + err.message, 'error');
+        }
+      }
+
+      function renderMessages(messages) {
+        const list = document.getElementById('messages-list');
+        const indicator = document.getElementById('msg-count-indicator');
+        if (indicator) indicator.textContent = `${messages.length} message${messages.length === 1 ? '' : 's'}`;
+
+        if (messages.length === 0) {
+          list.innerHTML = '<div style="text-align: center; color: var(--text-muted); font-size: 13px; padding: 24px 0;">No messages in this ticket yet.</div>';
+          return;
+        }
+
+        list.innerHTML = messages.map(m => {
+          const isAI = m.sender_type === 'ai' || m.sender_type === 'system';
+          const isSelf = m.sender_id === user.id || m.user_id === user.id;
+          const senderName = isAI ? '✨ NexusIT AI Diagnostic Assistant' : (m.sender ? m.sender.name : (m.sender_name || 'Support Staff'));
+          const timeStr = m.created_at ? new Date(m.created_at).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
+          const body = m.body || m.content || '';
+
+          const roleTag = isAI 
+            ? '<span style="font-size: 10px; font-weight: 700; background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; padding: 2px 7px; border-radius: var(--radius-full);">AI AUTOMATION</span>'
+            : isSelf 
+            ? '<span style="font-size: 10px; font-weight: 700; background: #e0e7ff; color: #3730a3; padding: 2px 7px; border-radius: var(--radius-full);">YOU</span>'
+            : '<span style="font-size: 10px; font-weight: 700; background: #eff6ff; color: #1e40af; padding: 2px 7px; border-radius: var(--radius-full);">SUPPORT STAFF</span>';
+
+          const attachmentsHtml = (m.attachments && m.attachments.length > 0)
+            ? `<div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px;">
+                ${m.attachments.map(att => {
+                  const isImg = (att.type && att.type.startsWith('image/')) || (typeof att.url === 'string' && att.url.startsWith('data:image/'));
+                  if (isImg) {
+                    return `<a href="${safeUrl(att.url)}" target="_blank" rel="noopener noreferrer" title="${escapeHtml(att.name || 'Image Attachment')}" style="display: inline-block; border-radius: var(--radius-md); overflow: hidden; border: 1px solid var(--border-subtle); max-width: 240px; max-height: 180px;">
+                      <img src="${safeUrl(att.url)}" alt="${escapeHtml(att.name || 'Attachment')}" style="max-width: 100%; max-height: 180px; object-fit: cover; display: block;" />
+                    </a>`;
+                  }
+                  return `<a href="${safeUrl(att.url || att.data)}" download="${escapeHtml(att.name || 'file')}" style="display: inline-flex; align-items: center; gap: 5px; background: #f1f5f9; padding: 4px 10px; border-radius: var(--radius-full); font-size: 11.5px; color: var(--text-body); text-decoration: none; border: 1px solid var(--border-main);">
+                    <span>📎</span> <span>${escapeHtml(att.name || 'Attachment')}</span>
+                  </a>`;
+                }).join('')}
+              </div>`
+            : '';
+
+          return `
+            <div style="padding: 16px 18px; border-radius: var(--radius-lg); ${isAI ? 'background: #f0fdf4; border: 1.5px solid #bbf7d0;' : isSelf ? 'background: #ffffff; border: 1.5px solid #e2e8f0; box-shadow: var(--shadow-xs);' : 'background: #eff6ff; border: 1.5px solid #bfdbfe;'}">
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <strong style="font-size: 13.5px; ${isAI ? 'color: #15803d;' : 'color: var(--text-main);'}">
+                    ${escapeHtml(senderName)}
+                  </strong>
+                  ${roleTag}
+                </div>
+                <span style="font-size: 11.5px; color: var(--text-muted);">${timeStr}</span>
+              </div>
+              <div style="font-size: 13.5px; color: var(--text-main); line-height: 1.6; white-space: pre-wrap;">${escapeHtml(body)}</div>
+              ${attachmentsHtml}
+            </div>
+          `;
+        }).join('');
+      }
+
+      async function loadMessages() {
+        try {
+          const messages = await apiRequest(`/tickets/${ticketId}/messages`);
+          renderMessages(messages);
+        } catch (err) {
+          console.error('Failed to load messages:', err);
+          const list = document.getElementById('messages-list');
+          list.innerHTML = '<div style="text-align: center; color: var(--text-muted); font-size: 13px; padding: 20px 0;">No messages yet.</div>';
+        }
+      }
+
+      function renderTicketDetails(t) {
+        document.getElementById('ticket-id-badge').textContent = `#${t.id}`;
+        document.getElementById('ticket-title').textContent = t.subject || t.title;
+        document.getElementById('ticket-description').textContent = t.description;
+        document.getElementById('ticket-cat-badge').textContent = t.category || 'General';
+        
+        const branchBadge = document.getElementById('ticket-branch-badge');
+        if (branchBadge) {
+          branchBadge.textContent = `📍 ${t.office_location || 'Office Branch'}`;
+        }
+
+        // Status pill
+        const statusElem = document.getElementById('ticket-status-badge');
+        const statusLabels = {
+          ai_handling: 'AI Triage',
+          open: 'AI Triage',
+          in_progress: 'In Progress',
+          ai_deflected: 'Deflected',
+          deflected: 'Deflected',
+          resolved: 'Resolved',
+          closed: 'Closed'
+        };
+        statusElem.className = `badge-text status-${(t.status || 'open').replace('_', '-')}`;
+        statusElem.textContent = statusLabels[t.status] || t.status;
+
+        // Priority pill
+        const prioElem = document.getElementById('ticket-priority-badge');
+        prioElem.className = `badge-text priority-${(t.priority || 'medium').toLowerCase()}`;
+        prioElem.textContent = (t.priority || 'Medium').charAt(0).toUpperCase() + (t.priority || 'Medium').slice(1);
+
+        // AI Deflection Bar (Show if user and open/ai_handling)
+        if (user.role === 'enduser' && (t.status === 'new' || t.status === 'ai_handling')) {
+          document.getElementById('ai-deflection-banner').style.display = 'flex';
+        } else {
+          document.getElementById('ai-deflection-banner').style.display = 'none';
+        }
+
+        // Tech Controls (Show if technician/admin)
+        if (user.role === 'technician' || user.role === 'admin') {
+          document.getElementById('tech-controls').style.display = 'flex';
+          document.getElementById('device-context-section').style.display = 'block';
+
+          const devName = t.device_name || t.hostname || 'CORP-WORKSTATION';
+          document.getElementById('dev-hostname').textContent = `Host: ${devName}`;
+          if (t.ip_address) document.getElementById('dev-ip').textContent = t.ip_address;
+          if (t.device_os) document.getElementById('dev-os').textContent = t.device_os;
+
+          if (t.briefing) {
+            document.getElementById('briefing-card').style.display = 'block';
+            renderBriefingCard(t.briefing);
+          }
+        }
+
+        // CSAT Rating Card (When resolved or deflected for enduser)
+        renderRatingCard(t);
+
+        // Live SLA Timer
+        setupSLATimer(t.sla_due || t.sla_target_at, t.status);
+      }
+
+      function renderBriefingCard(b) {
+        const container = document.getElementById('briefing-structured-content');
+        if (typeof b === 'string') {
+          container.innerHTML = `<div style="font-size: 13px; color: #581c87; line-height: 1.6; white-space: pre-wrap;">${escapeHtml(b)}</div>`;
+          return;
+        }
+
+        const summary = b.summary || 'Incident auto-triaged and escalated to human support.';
+        const userTried = b.user_tried || 'None reported yet';
+        const aiTried = b.ai_tried || 'Knowledge Base search and automated diagnostic prompt';
+        const likelyCauses = Array.isArray(b.likely_causes) ? b.likely_causes : (b.likely_causes ? [b.likely_causes] : []);
+        const suggestedSteps = Array.isArray(b.suggested_steps) ? b.suggested_steps : (b.suggested_steps ? [b.suggested_steps] : []);
+
+        container.innerHTML = `
+          <div style="background: white; border: 1px solid #e9d5ff; border-radius: var(--radius-md); padding: 14px; margin-bottom: 12px;">
+            <div class="briefing-label">📋 Problem Summary</div>
+            <div class="briefing-value" style="font-weight: 500;">${escapeHtml(summary)}</div>
+          </div>
+
+          <div class="briefing-grid">
+            <div class="briefing-box">
+              <div class="briefing-label">👤 User Attempted</div>
+              <div class="briefing-value">${escapeHtml(userTried)}</div>
+            </div>
+            <div class="briefing-box">
+              <div class="briefing-label">⚡ AI Assistant Tried</div>
+              <div class="briefing-value">${escapeHtml(aiTried)}</div>
+            </div>
+          </div>
+
+          ${likelyCauses.length > 0 ? `
+            <div style="margin-top: 12px; background: white; border: 1px solid #e9d5ff; border-radius: var(--radius-md); padding: 12px 14px;">
+              <div class="briefing-label">🎯 Likely Root Causes (Ranked)</div>
+              <ul style="padding-left: 18px; margin-top: 6px; font-size: 12.5px; color: #4c1d95; line-height: 1.6;">
+                ${likelyCauses.map(c => `<li>${escapeHtml(c)}</li>`).join('')}
+              </ul>
+            </div>
+          ` : ''}
+
+          ${suggestedSteps.length > 0 ? `
+            <div style="margin-top: 12px; background: white; border: 1px solid #e9d5ff; border-radius: var(--radius-md); padding: 12px 14px;">
+              <div class="briefing-label">🛠️ Recommended Action Steps for Technician</div>
+              <ol style="padding-left: 18px; margin-top: 6px; font-size: 12.5px; color: #4c1d95; line-height: 1.6;">
+                ${suggestedSteps.map(s => `<li>${escapeHtml(s)}</li>`).join('')}
+              </ol>
+            </div>
+          ` : ''}
+        `;
+      }
+
+      function setupSLATimer(targetAt, status) {
+        if (slaInterval) clearInterval(slaInterval);
+        const timerContainer = document.getElementById('sla-container');
+        const countdownElem = document.getElementById('sla-countdown');
+
+        if (status === 'resolved' || status === 'closed' || status === 'ai_deflected') {
+          timerContainer.className = 'sla-timer sla-safe';
+          countdownElem.textContent = 'Completed (SLA Met)';
+          return;
+        }
+
+        if (!targetAt) {
+          countdownElem.textContent = 'No SLA Target';
+          return;
+        }
+
+        const updateTimer = () => {
+          const now = new Date().getTime();
+          const target = new Date(targetAt).getTime();
+          const diff = target - now;
+
+          if (diff <= 0) {
+            timerContainer.className = 'sla-timer sla-breached';
+            const breachedMinutes = Math.abs(Math.floor(diff / 60000));
+            countdownElem.textContent = `BREACHED (${breachedMinutes}m ago)`;
+          } else {
+            const hours = Math.floor(diff / (1000 * 60 * 60));
+            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+            if (diff < 30 * 60 * 1000) {
+              timerContainer.className = 'sla-timer sla-warning';
+            } else {
+              timerContainer.className = 'sla-timer sla-safe';
+            }
+            countdownElem.textContent = `${hours}h ${minutes}m ${seconds}s left`;
+          }
+        };
+
+        updateTimer();
+        slaInterval = setInterval(updateTimer, 1000);
+      }
+
+
+      // Quick insert chips
+      document.querySelectorAll('.canned-chip').forEach(chip => {
+        chip.addEventListener('click', () => {
+          const textarea = document.getElementById('reply-input');
+          const text = chip.getAttribute('data-text');
+          textarea.value = (textarea.value ? textarea.value + '\n' : '') + text;
+          textarea.focus();
+        });
+      });
+
+      // Ctrl + Enter to send
+      document.getElementById('reply-input')?.addEventListener('keydown', (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+          e.preventDefault();
+          document.getElementById('reply-form')?.requestSubmit();
+        }
+      });
+
+      // ── Pending Attachments Management ──────────────────────────────
+      let pendingAttachments = [];
+
+      function renderPendingAttachments() {
+        const container = document.getElementById('pending-attachments-list');
+        if (!container) return;
+        if (pendingAttachments.length === 0) {
+          container.style.display = 'none';
+          container.innerHTML = '';
+          return;
+        }
+        container.style.display = 'flex';
+        container.innerHTML = pendingAttachments.map((att, idx) => `
+          <div style="display: inline-flex; align-items: center; gap: 6px; background: #e0e7ff; color: #3730a3; padding: 4px 10px; border-radius: var(--radius-full); font-size: 11.5px; font-weight: 600;">
+            <span>📎 ${escapeHtml(att.name)}</span>
+            <button type="button" class="remove-att-btn" data-index="${idx}" style="background: none; border: none; cursor: pointer; color: #4338ca; font-weight: 800;">✕</button>
+          </div>
+        `).join('');
+
+        container.querySelectorAll('.remove-att-btn').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const idx = parseInt(btn.getAttribute('data-index'), 10);
+            pendingAttachments.splice(idx, 1);
+            renderPendingAttachments();
+          });
+        });
+      }
+
+      function handleFiles(files) {
+        Array.from(files).forEach(file => {
+          if (file.size > 5 * 1024 * 1024) {
+            showToast(`File "${file.name}" exceeds 5MB limit`, 'error');
+            return;
+          }
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            pendingAttachments.push({
+              name: file.name,
+              type: file.type || 'application/octet-stream',
+              url: e.target.result
+            });
+            renderPendingAttachments();
+          };
+          reader.readAsDataURL(file);
+        });
+      }
+
+      document.getElementById('file-attachment-input')?.addEventListener('change', (e) => {
+        if (e.target.files) handleFiles(e.target.files);
+        e.target.value = '';
+      });
+
+      document.getElementById('reply-input')?.addEventListener('paste', (e) => {
+        const items = e.clipboardData?.items;
+        if (!items) return;
+        for (let i = 0; i < items.length; i++) {
+          if (items[i].type.indexOf('image') !== -1) {
+            const blob = items[i].getAsFile();
+            const fileName = `screenshot_${new Date().toISOString().replace(/[:.]/g, '-')}.png`;
+            const file = new File([blob], fileName, { type: blob.type });
+            handleFiles([file]);
+            showToast('Pasted screenshot attached from clipboard!', 'info');
+          }
+        }
+      });
+
+      // ── CSAT Rating Card ─────────────────────────────────────────────
+      function renderRatingCard(t) {
+        const ratingSection = document.getElementById('rating-section');
+        if (!ratingSection) return;
+
+        const isResolvedOrDeflected = ['resolved', 'deflected', 'ai_deflected', 'closed'].includes(t.status);
+        if (!isResolvedOrDeflected || user.role !== 'enduser') {
+          ratingSection.style.display = 'none';
+          return;
+        }
+
+        ratingSection.style.display = 'block';
+
+        if (t.rating) {
+          const stars = '⭐'.repeat(t.rating.rating || 5);
+          ratingSection.innerHTML = `
+            <div class="card" style="background: #f8fafc; border: 1.5px solid #cbd5e1; padding: 20px;">
+              <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+                <div>
+                  <div style="font-weight: 800; font-size: 14.5px; color: var(--text-main);">Customer Satisfaction Feedback</div>
+                  <div style="font-size: 14px; margin-top: 4px; display: flex; align-items: center; gap: 8px;">
+                    <span style="font-size: 18px;">${stars}</span>
+                    <strong style="color: #d97706;">(${t.rating.rating} / 5 Stars)</strong>
+                  </div>
+                  ${t.rating.comment ? `<p style="font-size: 13px; color: var(--text-body); margin-top: 6px; font-style: italic;">"${escapeHtml(t.rating.comment)}"</p>` : ''}
+                </div>
+                <span style="font-size: 11px; font-weight: 700; color: #15803d; background: #dcfce7; border: 1px solid #bbf7d0; padding: 4px 10px; border-radius: var(--radius-full);">
+                  ✓ Feedback Submitted
+                </span>
+              </div>
+            </div>
+          `;
+          return;
+        }
+
+        ratingSection.innerHTML = `
+          <div class="card" style="background: #fffbeb; border: 1.5px solid #fde68a; padding: 22px;">
+            <div style="font-weight: 800; font-size: 15px; color: #92400e; display: flex; align-items: center; gap: 8px;">
+              <span>⭐</span>
+              <span>Rate Your Resolution Experience</span>
+            </div>
+            <p style="font-size: 13px; color: #b45309; margin: 4px 0 14px 0;">
+              This ticket is marked resolved. How would you rate the speed and quality of support?
+            </p>
+            <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 14px;">
+              ${[1, 2, 3, 4, 5].map(star => `
+                <button type="button" class="btn btn-ghost btn-sm star-picker-btn" data-star="${star}" style="font-size: 24px; padding: 4px 6px; cursor: pointer; line-height: 1; border: none;">
+                  ☆
+                </button>
+              `).join('')}
+              <span id="star-score-text" style="font-size: 13px; font-weight: 700; color: #b45309; margin-left: 10px;">Select a rating</span>
+            </div>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+              <input type="text" id="rating-comment-input" class="form-input" placeholder="Optional comments on how we did..." style="flex: 1; min-width: 240px; font-size: 13px;" />
+              <button id="submit-rating-btn" class="btn btn-primary btn-sm" disabled style="background: #d97706; border-color: #d97706;">
+                Submit Feedback
+              </button>
+            </div>
+          </div>
+        `;
+
+        let selectedRating = 0;
+        const starBtns = ratingSection.querySelectorAll('.star-picker-btn');
+        const submitBtn = document.getElementById('submit-rating-btn');
+        const scoreText = document.getElementById('star-score-text');
+
+        starBtns.forEach(btn => {
+          btn.addEventListener('click', () => {
+            selectedRating = parseInt(btn.getAttribute('data-star'), 10);
+            submitBtn.disabled = false;
+            scoreText.textContent = `${selectedRating} of 5 Stars`;
+            starBtns.forEach(b => {
+              const val = parseInt(b.getAttribute('data-star'), 10);
+              b.textContent = val <= selectedRating ? '⭐' : '☆';
+            });
+          });
+        });
+
+        submitBtn?.addEventListener('click', async () => {
+          if (!selectedRating) return;
+          submitBtn.disabled = true;
+          submitBtn.textContent = 'Submitting...';
+          const comment = document.getElementById('rating-comment-input')?.value.trim() || null;
+          try {
+            await apiRequest(`/tickets/${ticketId}/rate`, {
+              method: 'POST',
+              body: { rating: selectedRating, comment }
+            });
+            showToast('Thank you for rating your support experience!', 'success');
+            loadTicketData();
+          } catch (err) {
+            showToast('Failed to submit rating: ' + err.message, 'error');
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Submit Feedback';
+          }
+        });
+      }
+
+      // ── Reply Form ───────────────────────────────────────────────────
+      document.getElementById('reply-form')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const content = document.getElementById('reply-input').value.trim();
+        if (!content && pendingAttachments.length === 0) return;
+
+        const btn = document.getElementById('send-reply-btn');
+        btn.disabled = true;
+        btn.textContent = 'Sending...';
+
+        try {
+          await apiRequest(`/tickets/${ticketId}/messages`, {
+            method: 'POST',
+            body: {
+              body: content || 'Attached diagnostic file / screenshot.',
+              attachments: pendingAttachments.length > 0 ? pendingAttachments : null
+            }
+          });
+          document.getElementById('reply-input').value = '';
+          pendingAttachments = [];
+          renderPendingAttachments();
+          showToast('Message sent successfully', 'success');
+          loadMessages();
+        } catch (err) {
+          showToast('Failed to send message: ' + err.message, 'error');
+        } finally {
+          btn.disabled = false;
+          btn.textContent = 'Send Message';
+        }
+      });
+
+      // ── Deflection Buttons ───────────────────────────────────────────
+      document.getElementById('deflect-fix-btn')?.addEventListener('click', async () => {
+        try {
+          await apiRequest(`/tickets/${ticketId}/confirm-resolved`, {
+            method: 'POST'
+          });
+          showToast('Ticket marked as resolved via AI Deflection! Thank you.', 'success');
+          loadTicketData();
+        } catch (err) {
+          showToast('Failed to confirm resolution: ' + err.message, 'error');
+        }
+      });
+
+      document.getElementById('deflect-escalate-btn')?.addEventListener('click', async () => {
+        try {
+          showToast('Generating AI Handover Briefing & escalating...', 'info');
+          await apiRequest(`/tickets/${ticketId}/escalate`, {
+            method: 'POST',
+            body: { reason: 'User confirmed issue remains unresolved' }
+          });
+          showToast('Ticket escalated to support team with AI handover briefing.', 'success');
+          loadTicketData();
+        } catch (err) {
+          showToast('Failed to escalate: ' + err.message, 'error');
+        }
+      });
+
+      // ── Technician Action Buttons ────────────────────────────────────
+      document.getElementById('claim-ticket-btn')?.addEventListener('click', async () => {
+        try {
+          await apiRequest(`/tickets/${ticketId}/status`, {
+            method: 'PATCH',
+            body: { status: 'in_progress', assigned_to: user.id }
+          });
+          showToast('Ticket claimed by you!', 'success');
+          loadTicketData();
+        } catch (err) {
+          showToast('Failed to claim ticket: ' + err.message, 'error');
+        }
+      });
+
+      document.getElementById('resolve-ticket-btn')?.addEventListener('click', async () => {
+        try {
+          await apiRequest(`/tickets/${ticketId}/resolve`, {
+            method: 'POST'
+          });
+          showToast('Ticket marked as resolved!', 'success');
+          loadTicketData();
+        } catch (err) {
+          showToast('Failed to resolve: ' + err.message, 'error');
+        }
+      });
+
+      // ── Ping Device Diagnostic ───────────────────────────────────────
+      document.getElementById('ping-device-btn')?.addEventListener('click', async () => {
+        const hostname = currentTicket?.hostname || 'CORP-HOST';
+        showToast(`Sending ICMP ping to ${hostname}...`, 'info');
+        try {
+          const res = await apiRequest(`/tickets/${ticketId}/ping-device`, {
+            method: 'POST',
+            body: { hostname }
+          });
+          showToast(`Host ${hostname} is ONLINE (${res.latency_ms || 14}ms latency)`, 'success');
+        } catch (err) {
+          showToast('Ping failed: ' + err.message, 'error');
+        }
+      });
+
+      // ── SOP Playbook Runner ──────────────────────────────────────────
+      document.getElementById('open-sop-btn')?.addEventListener('click', () => {
+        openPlaybookModal(ticketId, currentTicket?.hostname || 'CORP-WORKSTATION');
+      });
+
+      loadTicketData();
+      // Auto-poll messages every 6 seconds for live updates
+      setInterval(loadMessages, 6000);
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NexusIT Enterprise Service Desk — Portal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    :root {
+      --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      min-height: 100vh;
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 32px 20px;
+      position: relative;
+      overflow-x: hidden;
+      background-color: #090d16;
+      color: #f8fafc;
+      font-family: var(--font-sans);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Crisp Technical Grid Background */
+    .bg-grid-overlay {
+      position: absolute;
+      inset: 0;
+      background-image: 
+        linear-gradient(to right, rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+      background-size: 32px 32px;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    /* Subtle top accent border line */
+    .top-accent-line {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent 0%, #4f46e5 30%, #818cf8 50%, #4f46e5 70%, transparent 100%);
+      z-index: 2;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .animate-spin {
+      animation: spin 0.8s linear infinite;
+    }
+
+    /* Main Container */
+    .portal-container {
+      position: relative;
+      z-index: 10;
+      width: 100%;
+      max-width: 1140px;
+      margin: auto;
+      display: grid;
+      grid-template-columns: 1.15fr 1fr;
+      gap: 48px;
+      align-items: center;
+    }
+
+    /* Left Hero Column */
+    .hero-col {
+      display: flex;
+      flex-direction: column;
+      gap: 26px;
+    }
+
+    .brand-row {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-logo-gem {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: #0f172a;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    }
+
+    .brand-logo-gem img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 12px;
+    }
+
+    .brand-meta {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .brand-name {
+      font-size: 19px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      color: #ffffff;
+      line-height: 1.1;
+    }
+
+    .brand-tagline {
+      font-size: 11px;
+      color: #94a3b8;
+      font-weight: 500;
+      margin-top: 2px;
+      letter-spacing: 0.01em;
+    }
+
+    .hero-heading {
+      font-size: 38px;
+      font-weight: 800;
+      line-height: 1.15;
+      letter-spacing: -0.035em;
+      color: #f8fafc;
+    }
+
+    .gradient-text {
+      background: linear-gradient(135deg, #a5b4fc 0%, #c084fc 60%, #ffffff 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero-lead {
+      font-size: 14px;
+      color: #94a3b8;
+      line-height: 1.6;
+      max-width: 500px;
+      font-weight: 400;
+    }
+
+    .feature-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-width: 510px;
+    }
+
+    .feature-tile {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      padding: 14px 16px;
+      border-radius: 12px;
+      background: rgba(15, 23, 42, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      transition: all 0.2s ease;
+    }
+
+    .feature-tile:hover {
+      background: rgba(30, 41, 59, 0.75);
+      border-color: rgba(129, 140, 248, 0.3);
+      transform: translateY(-1px);
+    }
+
+    .feature-tile-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: rgba(99, 102, 241, 0.15);
+      border: 1px solid rgba(165, 180, 252, 0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #a5b4fc;
+      font-size: 15px;
+      flex-shrink: 0;
+    }
+
+    .feature-tile-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #f1f5f9;
+    }
+
+    .feature-tile-desc {
+      font-size: 11.5px;
+      color: #94a3b8;
+      line-height: 1.4;
+      margin-top: 2px;
+    }
+
+    /* Right Enterprise Card — Friendly Modern Glass */
+    .auth-glass-card {
+      position: relative;
+      background: #0f172a;
+      border-radius: 16px;
+      padding: 32px 28px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.05) inset;
+      width: 100%;
+      max-width: 440px;
+      margin: 0 auto;
+    }
+
+    /* Form Styles */
+    .field-group {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      margin-bottom: 14px;
+    }
+
+    .field-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: #cbd5e1;
+      letter-spacing: 0.02em;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .input-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .input-icon-left {
+      position: absolute;
+      left: 12px;
+      color: #64748b;
+      pointer-events: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .dark-input, .dark-select {
+      width: 100%;
+      height: 40px;
+      background: #090d16;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 8px;
+      padding: 0 12px 0 38px;
+      color: #f8fafc;
+      font-size: 13px;
+      font-family: inherit;
+      outline: none;
+      transition: all 0.15s ease;
+    }
+
+    .dark-select {
+      cursor: pointer;
+      appearance: none;
+      -webkit-appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      background-size: 12px;
+      padding-right: 32px;
+    }
+
+    .dark-select option {
+      background-color: #0f172a;
+      color: #f8fafc;
+    }
+
+    .dark-input::placeholder {
+      color: #475569;
+    }
+
+    .dark-input:focus, .dark-select:focus {
+      border-color: #818cf8;
+      box-shadow: 0 0 0 2px rgba(129, 140, 248, 0.25);
+    }
+
+    .pw-toggle-btn {
+      position: absolute;
+      right: 10px;
+      background: transparent;
+      border: none;
+      color: #64748b;
+      cursor: pointer;
+      padding: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .pw-toggle-btn:hover {
+      color: #a5b4fc;
+    }
+
+    .two-col-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    /* Action Button — Friendly Rounded */
+    .submit-hero-btn {
+      width: 100%;
+      height: 42px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+      color: #ffffff;
+      font-size: 13px;
+      font-weight: 700;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      cursor: pointer;
+      box-shadow: 0 4px 14px rgba(79, 70, 229, 0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.18s ease;
+      margin-top: 16px;
+    }
+
+    .submit-hero-btn:hover:not(:disabled) {
+      background: linear-gradient(135deg, #4338ca 0%, #4f46e5 100%);
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(79, 70, 229, 0.5);
+    }
+
+    .submit-hero-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .auth-footer-prompt {
+      font-size: 11.5px;
+      color: #64748b;
+      text-align: center;
+      margin-top: 14px;
+      padding-top: 12px;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .auth-footer-prompt a {
+      color: #818cf8;
+      font-weight: 700;
+      cursor: pointer;
+      text-decoration: none;
+    }
+
+    .auth-footer-prompt a:hover {
+      text-decoration: underline;
+    }
+
+    .it-staff-notice {
+      font-size: 10.5px;
+      color: #64748b;
+      text-align: center;
+      margin-top: 14px;
+      padding-top: 12px;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+    }
+
+    @media (max-width: 960px) {
+      .portal-container {
+        grid-template-columns: 1fr;
+        gap: 32px;
+      }
+      .hero-col {
+        text-align: center;
+        align-items: center;
+      }
+      .hero-heading {
+        font-size: 30px;
+      }
+      .hero-lead {
+        margin: 0 auto;
+      }
+      .feature-stack {
+        display: none;
+      }
+      .two-col-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Background Ambience -->
+  <div class="top-accent-line"></div>
+  <div class="bg-grid-overlay"></div>
+
+  <div class="portal-container">
+    
+    <!-- Left Hero Column -->
+    <div class="hero-col">
+      <div class="brand-row">
+        <div class="brand-logo-gem">
+          <img src="/assets/logo.jpg" alt="NexusIT" style="width: 100%; height: 100%; object-fit: cover;" />
+        </div>
+        <div class="brand-meta">
+          <span class="brand-name">NexusIT</span>
+          <span class="brand-tagline">Enterprise Service Desk & AI Triage</span>
+        </div>
+      </div>
+
+      <div>
+        <h1 class="hero-heading">
+          Global Autonomous<br />
+          <span class="gradient-text">IT Support Desk</span>
+        </h1>
+        <p class="hero-lead" style="margin-top: 10px;">
+          Intelligent incident triage, automated self-service deflection, and zero-context-loss briefings connecting all international branch offices to one central IT desk.
+        </p>
+      </div>
+
+      <!-- Feature Tiles -->
+      <div class="feature-stack">
+        <div class="feature-tile">
+          <div class="feature-tile-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/>
+            </svg>
+          </div>
+          <div>
+            <div class="feature-tile-title">Multi-Branch Global Operations</div>
+            <div class="feature-tile-desc">Dedicated branch telemetry (US, UK, SG, DE, JP, AU) resolved by one central IT desk.</div>
+          </div>
+        </div>
+
+        <div class="feature-tile">
+          <div class="feature-tile-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/>
+            </svg>
+          </div>
+          <div>
+            <div class="feature-tile-title">Private & Isolated User Portal</div>
+            <div class="feature-tile-desc">End users strictly view and manage only their own submitted support requests.</div>
+          </div>
+        </div>
+
+        <div class="feature-tile">
+          <div class="feature-tile-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+            </svg>
+          </div>
+          <div>
+            <div class="feature-tile-title">Instant AI Deflection & Briefings</div>
+            <div class="feature-tile-desc">Real-time troubleshooting guides and seamless diagnostic technician handover.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Column: Enterprise Card -->
+    <div class="auth-glass-card">
+      
+      <!-- Card Header -->
+      <div style="margin-bottom: 22px;">
+        <h2 id="auth-title" style="font-size: 21px; font-weight: 800; color: #ffffff; letter-spacing: -0.02em;">Enterprise Sign In</h2>
+        <p id="auth-subtitle" style="font-size: 12.5px; color: #94a3b8; margin-top: 4px;">Sign in with your corporate credentials to access the IT Service Desk.</p>
+      </div>
+
+      <!-- ================= SIGN IN VIEW ================= -->
+      <div id="signin-view">
+        <form id="login-form">
+          <div class="field-group">
+            <label class="field-label">Enterprise Email</label>
+            <div class="input-wrapper">
+              <span class="input-icon-left">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+              </span>
+              <input type="email" id="login-email" class="dark-input" required placeholder="name@company.com" autocomplete="email" />
+            </div>
+          </div>
+
+          <div class="field-group">
+            <div class="field-label">
+              <span>Password</span>
+              <a href="javascript:void(0)" style="font-size: 11px; color: #818cf8; text-decoration: none;" id="forgot-pw-btn">Forgot?</a>
+            </div>
+            <div class="input-wrapper">
+              <span class="input-icon-left">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              </span>
+              <input type="password" id="login-password" class="dark-input" required placeholder="Enter password" style="padding-right: 36px;" autocomplete="current-password" />
+              <button type="button" class="pw-toggle-btn" data-target="login-password" title="Toggle password visibility">
+                <svg class="eye-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <button type="submit" id="login-btn" class="submit-hero-btn">
+            <span id="login-btn-text">Sign In to Service Desk</span>
+            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+          </button>
+        </form>
+
+        <!-- Registration Prompt -->
+        <div id="enduser-reg-prompt" class="auth-footer-prompt">
+          New employee? <a id="switch-to-reg" style="cursor: pointer; color: #818cf8; font-weight: 600;">Create Account</a>
+        </div>
+      </div>
+
+        <!-- Technician/Admin IT Notice (Hidden on End User) -->
+        <div id="it-staff-notice" class="it-staff-notice" style="display: none;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          <span id="it-staff-notice-text">Technician accounts are pre-provisioned by IT Operations.</span>
+        </div>
+      </div>
+
+      <!-- ================= END USER REGISTRATION VIEW (ONLY FOR END USERS) ================= -->
+      <div id="signup-view" style="display: none;">
+        <form id="signup-form">
+          <div class="field-group">
+            <label class="field-label">Full Name</label>
+            <div class="input-wrapper">
+              <span class="input-icon-left">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              </span>
+              <input type="text" id="reg-name" class="dark-input" required placeholder="Sarah Jenkins" />
+            </div>
+          </div>
+
+          <div class="field-group">
+            <label class="field-label">Work Email</label>
+            <div class="input-wrapper">
+              <span class="input-icon-left">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+              </span>
+              <input type="email" id="reg-email" class="dark-input" required placeholder="s.jenkins@company.com" />
+            </div>
+          </div>
+
+          <div class="two-col-grid">
+            <div class="field-group">
+              <label class="field-label">Branch Office</label>
+              <div class="input-wrapper">
+                <span class="input-icon-left">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+                </span>
+                <select id="reg-branch" class="dark-select">
+                  <option value="US-NYC">US — New York HQ</option>
+                  <option value="UK-LON">UK — London Hub</option>
+                  <option value="SG-SIN">SG — Singapore Hub</option>
+                  <option value="DE-BER">DE — Berlin Office</option>
+                  <option value="JP-TYO">JP — Tokyo Office</option>
+                  <option value="AU-SYD">AU — Sydney Hub</option>
+                  <option value="REMOTE">Global Remote</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="field-group">
+              <label class="field-label">Department</label>
+              <div class="input-wrapper">
+                <span class="input-icon-left">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="16" height="20" x="4" y="2" rx="2"/><path d="M9 22v-4h6v4"/><path d="M8 6h.01"/><path d="M16 6h.01"/><path d="M8 10h.01"/><path d="M16 10h.01"/><path d="M8 14h.01"/><path d="M16 14h.01"/></svg>
+                </span>
+                <select id="reg-team" class="dark-select">
+                  <option value="Engineering">Engineering</option>
+                  <option value="Product">Product</option>
+                  <option value="Sales">Sales</option>
+                  <option value="Marketing">Marketing</option>
+                  <option value="Finance">Finance</option>
+                  <option value="HR">People / HR</option>
+                  <option value="Operations">Operations</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="field-group">
+            <label class="field-label">Password</label>
+            <div class="input-wrapper">
+              <span class="input-icon-left">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              </span>
+              <input type="password" id="reg-pass" class="dark-input" required minlength="8" autocomplete="new-password" placeholder="Choose secure password" style="padding-right: 36px;" />
+              <button type="button" class="pw-toggle-btn" data-target="reg-pass" title="Toggle password visibility">
+                <svg class="eye-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <button type="submit" id="signup-btn" class="submit-hero-btn">
+            <span>Create End-User Account</span>
+            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+          </button>
+        </form>
+
+        <!-- Switch to Sign In Link -->
+        <div class="auth-footer-prompt">
+          Already registered? <a id="switch-to-signin">Sign in to your account</a>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <script type="module">
+    import { login, register } from './js/auth.js';
+    import { showToast } from './js/app.js';
+
+    let currentMode = 'signin'; // 'signin' | 'signup'
+
+    const authTitle = document.getElementById('auth-title');
+    const authSub = document.getElementById('auth-subtitle');
+    const signinView = document.getElementById('signin-view');
+    const signupView = document.getElementById('signup-view');
+    const switchToReg = document.getElementById('switch-to-reg');
+    const switchToSignin = document.getElementById('switch-to-signin');
+    const loginBtnText = document.getElementById('login-btn-text');
+
+    const loginForm = document.getElementById('login-form');
+    const loginEmail = document.getElementById('login-email');
+    const loginPass = document.getElementById('login-password');
+    const loginBtn = document.getElementById('login-btn');
+
+    const signupForm = document.getElementById('signup-form');
+    const regName = document.getElementById('reg-name');
+    const regEmail = document.getElementById('reg-email');
+    const regBranch = document.getElementById('reg-branch');
+    const regTeam = document.getElementById('reg-team');
+    const regPass = document.getElementById('reg-pass');
+    const signupBtn = document.getElementById('signup-btn');
+
+    function updateView() {
+      if (currentMode === 'signup') {
+        signinView.style.display = 'none';
+        signupView.style.display = 'block';
+        authTitle.textContent = 'Create Corporate Account';
+        authSub.textContent = 'Register your employee profile to submit and track IT support tickets.';
+      } else {
+        signupView.style.display = 'none';
+        signinView.style.display = 'block';
+        authTitle.textContent = 'Enterprise Sign In';
+        authSub.textContent = 'Sign in with your corporate credentials to access the IT Service Desk.';
+      }
+    }
+
+    if (switchToReg) {
+      switchToReg.addEventListener('click', () => {
+        currentMode = 'signup';
+        updateView();
+      });
+    }
+
+    if (switchToSignin) {
+      switchToSignin.addEventListener('click', () => {
+        currentMode = 'signin';
+        updateView();
+      });
+    }
+
+    document.getElementById('forgot-pw-btn')?.addEventListener('click', () => {
+      showToast('Password recovery: Please contact your IT administrator or manager to reset corporate credentials.', 'info');
+    });
+
+    const eyeSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>`;
+    const eyeOffSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" x2="22" y1="2" y2="22"/></svg>`;
+
+    // Password Toggles
+    document.querySelectorAll('.pw-toggle-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const inputId = btn.getAttribute('data-target');
+        const input = document.getElementById(inputId);
+        if (!input) return;
+        if (input.type === 'password') {
+          input.type = 'text';
+          btn.innerHTML = eyeOffSvg;
+          btn.style.color = '#818cf8';
+        } else {
+          input.type = 'password';
+          btn.innerHTML = eyeSvg;
+          btn.style.color = '#64748b';
+        }
+      });
+    });
+
+    // Sign In Submit
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = loginEmail.value.trim();
+      const password = loginPass.value;
+
+      if (!email || !password) {
+        showToast('Please enter both your email and password.', 'error');
+        return;
+      }
+
+      loginBtn.disabled = true;
+      loginBtn.innerHTML = `
+        <svg class="animate-spin" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10" stroke-opacity="0.25"/><path d="M12 2a10 10 0 0 1 10 10"/></svg>
+        <span>Authenticating...</span>
+      `;
+
+      try {
+        const user = await login(email, password);
+        showToast(`Welcome back, ${user.name || user.email}!`, 'success');
+        setTimeout(() => {
+          if (user.role === 'technician') window.location.href = '/queue.html';
+          else if (user.role === 'admin') window.location.href = '/metrics.html';
+          else window.location.href = '/tickets.html';
+        }, 300);
+      } catch (err) {
+        showToast(err.message || 'Invalid email or password.', 'error');
+        loginBtn.disabled = false;
+        loginBtn.innerHTML = `<span>Sign In to Service Desk</span><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>`;
+      }
+    });
+
+    const branchNames = {
+      'US-NYC': 'New York HQ (US)',
+      'UK-LON': 'London Tech Hub (UK)',
+      'SG-SIN': 'Singapore APAC Hub (SG)',
+      'DE-BER': 'Berlin Office (DE)',
+      'JP-TYO': 'Tokyo Office (JP)',
+      'AU-SYD': 'Sydney Hub (AU)',
+      'REMOTE': 'Global Remote / Home'
+    };
+
+    // End User Sign Up Submit
+    if (signupForm) {
+      signupForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        signupBtn.disabled = true;
+        signupBtn.innerHTML = `
+          <svg class="animate-spin" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10" stroke-opacity="0.25"/><path d="M12 2a10 10 0 0 1 10 10"/></svg>
+          <span>Creating Profile...</span>
+        `;
+
+        const branchCode = regBranch.value;
+        const branchLabel = branchNames[branchCode] || branchCode;
+        const deviceName = `LAPTOP-${branchCode}-${Math.floor(100 + Math.random() * 900)}`;
+
+        const userData = {
+          name: regName.value.trim(),
+          email: regEmail.value.trim().toLowerCase(),
+          password: regPass.value,
+          role: 'enduser', // Exclusively End User
+          team: regTeam.value,
+          branch: branchCode,
+          office_location: branchLabel,
+          device_name: deviceName,
+          primary_device: {
+            branch: branchCode,
+            office_location: branchLabel,
+            device_name: deviceName,
+            ip_address: branchCode === 'UK-LON' ? '10.22.40.15' : branchCode === 'SG-SIN' ? '10.35.12.88' : '10.14.88.24',
+            subnet_vlan: `VLAN for ${branchLabel}`
+          }
+        };
+
+        try {
+          const user = await register(userData);
+          showToast(`Account created! Welcome, ${user.name}!`, 'success');
+          setTimeout(() => {
+            window.location.href = '/tickets.html';
+          }, 350);
+        } catch (err) {
+          showToast(err.message || 'Registration failed', 'error');
+          signupBtn.disabled = false;
+          signupBtn.innerHTML = `<span>Create End-User Account</span><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>`;
+        }
+      });
+    }
+
+    // Initialize View
+    updateView();
+  </script>
+</body>
+</html>

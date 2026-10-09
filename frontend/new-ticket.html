@@ -1,0 +1,1228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Submit Support Ticket — NexusIT Service Desk</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    /* Mode Switcher Tabs */
+    .intake-tabs {
+      display: flex;
+      gap: 6px;
+      background: var(--bg-hover);
+      padding: 4px;
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border-subtle);
+      margin-bottom: 20px;
+    }
+    .intake-tab-btn {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 9px 16px;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-muted);
+      background: transparent;
+      border: none;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: all 0.18s ease;
+    }
+    .intake-tab-btn:hover {
+      color: var(--text-main);
+    }
+    .intake-tab-btn.active {
+      background: #ffffff;
+      color: var(--primary);
+      box-shadow: var(--shadow-sm);
+    }
+
+    /* Device Context Banner */
+    .device-context-strip {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+      background: #f8fafc;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 8px 14px;
+      margin-bottom: 16px;
+      font-size: 12px;
+    }
+    .device-context-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--text-muted);
+    }
+    .device-context-item strong {
+      color: var(--text-main);
+    }
+
+    /* Chat Container */
+    .chat-container-card {
+      display: flex;
+      flex-direction: column;
+      height: 600px;
+      border: 1.5px solid var(--border-main);
+      border-radius: var(--radius-xl);
+      background: #ffffff;
+      overflow: hidden;
+      box-shadow: var(--shadow-sm);
+    }
+    .chat-header-bar {
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border-subtle);
+      background: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .chat-agent-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .chat-agent-avatar {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #4f46e5, #7c3aed);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      box-shadow: 0 2px 8px rgba(79, 70, 229, 0.3);
+    }
+    .chat-messages-area {
+      flex: 1;
+      padding: 20px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      background: #f8fafc;
+    }
+
+    /* Message Bubbles */
+    .chat-msg {
+      display: flex;
+      gap: 10px;
+      max-width: 82%;
+      animation: fadeInMsg 0.25s ease;
+    }
+    @keyframes fadeInMsg {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .chat-msg.bot {
+      align-self: flex-start;
+    }
+    .chat-msg.user {
+      align-self: flex-end;
+      flex-direction: row-reverse;
+    }
+    .chat-avatar-mini {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+    }
+    .chat-avatar-mini.bot {
+      background: #eef2ff;
+      color: #4f46e5;
+      border: 1px solid #c7d2fe;
+    }
+    .chat-avatar-mini.user {
+      background: #e0f2fe;
+      color: #0369a1;
+      border: 1px solid #bae6fd;
+    }
+    .chat-bubble {
+      padding: 14px 16px;
+      border-radius: 14px;
+      font-size: 13.5px;
+      line-height: 1.55;
+    }
+    .chat-msg.bot .chat-bubble {
+      background: #ffffff;
+      color: var(--text-main);
+      border: 1px solid var(--border-main);
+      border-top-left-radius: 4px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    }
+    .chat-msg.user .chat-bubble {
+      background: var(--primary);
+      color: #ffffff;
+      border-top-right-radius: 4px;
+      box-shadow: 0 2px 6px rgba(79, 70, 229, 0.25);
+    }
+
+    /* Markdown & Code styling inside bubble */
+    .chat-bubble p {
+      margin-bottom: 8px;
+    }
+    .chat-bubble p:last-child {
+      margin-bottom: 0;
+    }
+    .chat-bubble code {
+      font-family: var(--font-mono);
+      background: #f1f5f9;
+      color: #0f172a;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 12px;
+    }
+    .chat-msg.user .chat-bubble code {
+      background: rgba(255, 255, 255, 0.2);
+      color: #ffffff;
+    }
+    .chat-bubble pre {
+      background: #0f172a;
+      color: #f8fafc;
+      padding: 10px 14px;
+      border-radius: 8px;
+      overflow-x: auto;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      margin: 8px 0;
+    }
+
+    /* Diagnosis Meta Pill */
+    .diagnosis-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 9999px;
+      margin-bottom: 10px;
+    }
+    .pill-network { background: #e0f2fe; color: #0369a1; }
+    .pill-hardware { background: #fef3c7; color: #92400e; }
+    .pill-software { background: #e0e7ff; color: #3730a3; }
+    .pill-access { background: #fae8ff; color: #86198f; }
+    .pill-other { background: #f1f5f9; color: #475569; }
+
+    /* Action Buttons Under AI Message */
+    .chat-action-bar {
+      margin-top: 12px;
+      padding-top: 10px;
+      border-top: 1px solid var(--border-subtle);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .btn-action-resolved {
+      background: #f0fdf4;
+      border: 1px solid #86efac;
+      color: #166534;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 6px 12px;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.18s ease;
+    }
+    .btn-action-resolved:hover {
+      background: #dcfce7;
+      border-color: #4ade80;
+      transform: translateY(-1px);
+    }
+    .btn-action-escalate {
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      color: #991b1b;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 6px 12px;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.18s ease;
+    }
+    .btn-action-escalate:hover {
+      background: #fee2e2;
+      border-color: #f87171;
+      transform: translateY(-1px);
+    }
+
+    /* Handover / Escalated Card in Chat */
+    .escalated-handover-card {
+      background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
+      border: 1.5px solid #c7d2fe;
+      border-radius: var(--radius-lg);
+      padding: 16px;
+      margin-top: 10px;
+      box-shadow: 0 4px 12px rgba(79, 70, 229, 0.08);
+    }
+    .handover-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #e0e7ff;
+    }
+    .handover-info-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 10px;
+      margin-bottom: 12px;
+      font-size: 11.5px;
+    }
+    .handover-info-box {
+      background: #f1f5f9;
+      padding: 8px 10px;
+      border-radius: var(--radius-sm);
+    }
+    .handover-info-box label {
+      display: block;
+      color: var(--text-muted);
+      font-size: 10px;
+      text-transform: uppercase;
+      font-weight: 700;
+      margin-bottom: 2px;
+    }
+    .handover-info-box span {
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    /* Typing Indicator */
+    .typing-indicator {
+      display: none;
+      align-items: center;
+      gap: 4px;
+      padding: 8px 14px;
+      background: #ffffff;
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      width: fit-content;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+    .dot-pulse {
+      width: 6px;
+      height: 6px;
+      background: var(--primary);
+      border-radius: 50%;
+      animation: dotPulse 1.2s infinite ease-in-out;
+    }
+    .dot-pulse:nth-child(2) { animation-delay: 0.2s; }
+    .dot-pulse:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes dotPulse {
+      0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+      40% { transform: scale(1); opacity: 1; }
+    }
+
+    /* ── State-of-the-Art Modern Chat Input Bar ── */
+    .chat-input-bar {
+      padding: 14px 18px 12px 18px;
+      background: #ffffff;
+      border-top: 1px solid var(--border-subtle);
+    }
+    .modern-prompt-card {
+      background: #f8fafc;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 14px;
+      padding: 9px 12px;
+      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .modern-prompt-card:focus-within {
+      background: #ffffff;
+      border-color: #6366f1;
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12), 0 6px 20px rgba(99, 102, 241, 0.06);
+    }
+    .prompt-top-row {
+      display: flex;
+      align-items: flex-end;
+      gap: 10px;
+    }
+    .prompt-sparkle-icon {
+      color: #6366f1;
+      font-size: 15px;
+      margin-bottom: 5px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0.85;
+    }
+    .chat-textarea {
+      flex: 1;
+      border: none !important;
+      background: transparent !important;
+      padding: 3px 0 !important;
+      font-family: var(--font-sans);
+      font-size: 13.5px;
+      color: var(--text-main);
+      line-height: 1.5;
+      resize: none;
+      height: 24px;
+      min-height: 24px;
+      max-height: 110px;
+      outline: none !important;
+      box-shadow: none !important;
+      overflow-y: hidden;
+    }
+    .chat-textarea::placeholder {
+      color: #94a3b8;
+      font-weight: 400;
+    }
+    .modern-send-btn {
+      width: 34px;
+      height: 34px;
+      border-radius: 9px;
+      background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+      color: #ffffff;
+      border: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: 0 2px 6px rgba(79, 70, 229, 0.25);
+    }
+    .modern-send-btn:hover:not(:disabled) {
+      transform: scale(1.05);
+      box-shadow: 0 4px 12px rgba(79, 70, 229, 0.4);
+    }
+    .modern-send-btn:active:not(:disabled) {
+      transform: scale(0.96);
+    }
+    .modern-send-btn:disabled {
+      background: #e2e8f0;
+      color: #94a3b8;
+      box-shadow: none;
+      cursor: not-allowed;
+      transform: none;
+      opacity: 0.6;
+    }
+    .prompt-footer-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-top: 5px;
+      border-top: 1px solid rgba(226, 232, 240, 0.7);
+      font-size: 11px;
+      color: #94a3b8;
+    }
+    .prompt-footer-row kbd {
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-radius: 3px;
+      padding: 1px 4px;
+      font-size: 9.5px;
+      font-family: var(--font-sans);
+      color: #64748b;
+    }
+
+    /* Classic Form Container */
+    .cat-cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 10px;
+      margin-top: 6px;
+    }
+    .cat-card-option {
+      background: #ffffff;
+      border: 1.5px solid var(--border-main);
+      border-radius: var(--radius-md);
+      padding: 12px 10px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.18s ease;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+    .cat-card-option:hover {
+      border-color: var(--primary);
+      background: var(--bg-hover);
+      transform: translateY(-1px);
+    }
+    .cat-card-option.active {
+      border-color: var(--primary);
+      background: var(--primary-subtle);
+      color: var(--primary);
+      box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.2);
+    }
+    .cat-card-icon {
+      font-size: 22px;
+    }
+    .cat-card-label {
+      font-size: 11.5px;
+      font-weight: 700;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="app-container">
+    <div class="main-wrapper">
+      <main class="content-body">
+        <div style="max-width: 820px; margin: 0 auto;">
+          
+          <!-- Card Header & Navigation -->
+          <div style="margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between;">
+            <a href="/tickets.html" class="btn btn-sm btn-secondary" style="display: inline-flex; align-items: center; gap: 4px; font-weight: 600;">
+              ‹ Back to Tickets
+            </a>
+            <div style="font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 6px;">
+              <span style="width: 8px; height: 8px; border-radius: 50%; background: #10b981; display: inline-block;"></span>
+              Autonomous IT Support Engine Online
+            </div>
+          </div>
+
+          <div class="card" style="padding: 24px 28px;">
+            <div style="margin-bottom: 18px; padding-bottom: 14px; border-bottom: 1px solid var(--border-subtle); display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+              <div>
+                <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--primary);">Support Desk</div>
+                <h1 style="font-size: 22px; font-weight: 800; color: var(--text-main); margin-top: 2px;">Submit Support Request</h1>
+                <p style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">
+                  Describe your problem in the chat. Our AI Assistant will analyze the issue, test known fixes, and resolve it instantly. If unresolved, it will seamlessly escalate to human IT engineering.
+                </p>
+              </div>
+            </div>
+
+            <!-- Mode Switcher Tabs -->
+            <div class="intake-tabs">
+              <button type="button" class="intake-tab-btn active" id="tab-btn-chat">
+                <span>💬</span> AI Support Chatbot (Fastest)
+              </button>
+              <button type="button" class="intake-tab-btn" id="tab-btn-form">
+                <span>📝</span> Classic Ticket Form
+              </button>
+            </div>
+
+            <!-- Auto-Detected Hardware Context Banner -->
+            <div class="device-context-strip">
+              <div class="device-context-item">
+                <span>💻</span>
+                <span>Workstation:</span>
+                <strong id="display-hostname">CORP-LAPTOP-W11-842</strong>
+              </div>
+              <div class="device-context-item">
+                <span>📍</span>
+                <span>Location:</span>
+                <strong id="display-branch">US - New York HQ</strong>
+              </div>
+              <div class="device-context-item" style="color: #15803d; font-weight: 600;">
+                <span>🛡️</span>
+                <span>Hardware context active</span>
+              </div>
+            </div>
+
+            <!-- ─────────────────────────────────────────────────────────────
+                 MODE 1: AI SUPPORT CHATBOT (Default)
+                 ───────────────────────────────────────────────────────────── -->
+            <div id="view-ai-chat">
+              <div class="chat-container-card">
+                
+                <!-- Chat Header -->
+                <div class="chat-header-bar">
+                  <div class="chat-agent-info">
+                    <div class="chat-agent-avatar">🤖</div>
+                    <div>
+                      <div style="font-size: 13.5px; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 6px;">
+                        <span>RelayDesk AI Assistant</span>
+                        <span style="font-size: 10px; background: #ecfdf5; color: #15803d; border: 1px solid #bbf7d0; padding: 1px 6px; border-radius: 999px;">Ready</span>
+                      </div>
+                      <div style="font-size: 11px; color: var(--text-muted);">Self-Service Troubleshooting & Diagnostic Escalation</div>
+                    </div>
+                  </div>
+                  <div style="display: flex; gap: 8px;">
+                    <button type="button" id="btn-reset-chat" class="btn btn-sm btn-secondary" style="font-size: 11px; padding: 4px 10px;">
+                      🔄 New Chat
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Chat Messages Stream -->
+                <div class="chat-messages-area" id="chat-messages">
+                  <!-- Initial Greeting -->
+                  <div class="chat-msg bot">
+                    <div class="chat-avatar-mini bot">🤖</div>
+                    <div class="chat-bubble">
+                      <p><strong>Hi there! 👋 I am your Virtual IT Assistant.</strong></p>
+                      <p>Please type the technical issue or error you are experiencing in the box below. I will analyze your symptoms and guide you through an instant fix.</p>
+                      <div style="font-size: 11px; color: var(--text-muted); margin-top: 6px;">
+                        💡 If the issue cannot be resolved via self-service, I will immediately escalate your case to a human technician with a full diagnostic briefing.
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Typing Indicator -->
+                <div style="padding: 0 20px 8px 20px;">
+                  <div class="typing-indicator" id="chat-typing">
+                    <div class="dot-pulse"></div>
+                    <div class="dot-pulse"></div>
+                    <div class="dot-pulse"></div>
+                    <span style="margin-left: 6px;" id="typing-text">Analyzing issue details & matching solutions...</span>
+                  </div>
+                </div>
+
+                <!-- State-of-the-Art Modern Chat Input Bar -->
+                <div class="chat-input-bar">
+                  <div class="modern-prompt-card">
+                    <div class="prompt-top-row">
+                      <div class="prompt-sparkle-icon" title="Virtual IT Assistant Ready">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/>
+                          <path d="M19 16v3"/>
+                          <path d="M22 17.5h-6"/>
+                        </svg>
+                      </div>
+                      <textarea
+                        id="chat-input"
+                        class="chat-textarea"
+                        placeholder="Describe your issue or what's broken..."
+                        rows="1"
+                        autocomplete="off"
+                      ></textarea>
+                      <button type="button" id="chat-send-btn" class="modern-send-btn" title="Send Message (Enter)">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                          <line x1="12" y1="19" x2="12" y2="5"></line>
+                          <polyline points="5 12 12 5 19 12"></polyline>
+                        </svg>
+                      </button>
+                    </div>
+                    <div class="prompt-footer-row">
+                      <div style="display:flex; align-items:center; gap:5px;">
+                        <span>Press <kbd>Enter &#8629;</kbd> to send</span>
+                        <span style="opacity: 0.5;">&bull;</span>
+                        <span><kbd>Shift + Enter</kbd> for new line</span>
+                      </div>
+                      <div id="device-context-chip" style="display:flex; align-items:center; gap:5px; color: #64748b; font-size:10.5px;">
+                        <span>💻 <span id="prompt-device-label">Local Workstation</span></span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+            <!-- ─────────────────────────────────────────────────────────────
+                 MODE 2: CLASSIC TICKET FORM (Toggleable)
+                 ───────────────────────────────────────────────────────────── -->
+            <div id="view-classic-form" style="display: none;">
+              <form id="ticket-form">
+                <!-- Issue Title -->
+                <div class="form-group">
+                  <label class="form-label">Issue Summary / Title</label>
+                  <input type="text" id="title" class="form-input" placeholder="e.g. Cannot connect to Cisco AnyConnect VPN client" required autocomplete="off" />
+                </div>
+
+                <!-- Interactive Category Selection Cards -->
+                <div class="form-group">
+                  <label class="form-label">Select Issue Category</label>
+                  <div class="cat-cards-grid" id="cat-cards-container">
+                    <div class="cat-card-option" data-cat="software">
+                      <span class="cat-card-icon">💻</span>
+                      <span class="cat-card-label">Software & OS</span>
+                    </div>
+                    <div class="cat-card-option active" data-cat="network">
+                      <span class="cat-card-icon">🌐</span>
+                      <span class="cat-card-label">Network & VPN</span>
+                    </div>
+                    <div class="cat-card-option" data-cat="hardware">
+                      <span class="cat-card-icon">🖥️</span>
+                      <span class="cat-card-label">Hardware</span>
+                    </div>
+                    <div class="cat-card-option" data-cat="access">
+                      <span class="cat-card-icon">🔑</span>
+                      <span class="cat-card-label">Account Access</span>
+                    </div>
+                    <div class="cat-card-option" data-cat="other">
+                      <span class="cat-card-icon">❓</span>
+                      <span class="cat-card-label">Other Inquiry</span>
+                    </div>
+                  </div>
+                  <!-- Hidden select for form value -->
+                  <select id="category" class="form-select" style="display: none;">
+                    <option value="software">Software & OS</option>
+                    <option value="network" selected>Network & VPN</option>
+                    <option value="hardware">Hardware & Peripherals</option>
+                    <option value="access">Account & Password Access</option>
+                    <option value="other">Other Inquiry</option>
+                  </select>
+                </div>
+
+                <!-- Priority & Branch Context -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                  <div class="form-group">
+                    <label class="form-label">Urgency / Impact</label>
+                    <select id="priority" class="form-select">
+                      <option value="low">🟢 Low — General question or minor request</option>
+                      <option value="medium" selected>🟡 Medium — Standard work issue (can still work)</option>
+                      <option value="high">🟠 High — Urgent, important deadline at risk</option>
+                      <option value="critical">🔴 Critical — Complete work stoppage / blockage</option>
+                    </select>
+                  </div>
+
+                  <div class="form-group">
+                    <label class="form-label">Affected Office Branch</label>
+                    <select id="branch-select" class="form-select">
+                      <option value="New York HQ (US)">🇺🇸 US - New York HQ</option>
+                      <option value="London Tech Hub (UK)">🇬🇧 UK - London Hub</option>
+                      <option value="Singapore APAC Hub (SG)">🇸🇬 SG - Singapore Hub</option>
+                      <option value="Berlin Office (DE)">🇩🇪 DE - Berlin Office</option>
+                      <option value="Tokyo Office (JP)">🇯🇵 JP - Tokyo Office</option>
+                      <option value="Sydney Hub (AU)">🇦🇺 AU - Sydney Hub</option>
+                      <option value="Global Remote / Home">🌐 Global Remote / Home</option>
+                    </select>
+                  </div>
+                </div>
+
+                <!-- Device Hostname -->
+                <div class="form-group">
+                  <label class="form-label">
+                    <span>Assigned Workstation Hostname</span>
+                    <span style="font-weight: normal; color: var(--text-muted); font-size: 11px;">(Auto-detected from profile)</span>
+                  </label>
+                  <input type="text" id="hostname" class="form-input" placeholder="e.g. LAPTOP-CORP-042" />
+                </div>
+
+                <!-- Detailed Description -->
+                <div class="form-group">
+                  <label class="form-label">Detailed Description</label>
+                  <textarea id="description" class="form-textarea" placeholder="Please describe what happened, any error messages, and what steps you already tried..." required style="min-height: 120px;"></textarea>
+                </div>
+
+                <!-- Action Buttons -->
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border-subtle);">
+                  <button type="button" id="btn-back-to-chat" class="btn btn-secondary">
+                    ‹ Back to AI Chat
+                  </button>
+                  <button type="submit" id="submit-btn" class="btn btn-primary" style="padding: 10px 22px;">
+                    Submit Classic Ticket →
+                  </button>
+                </div>
+              </form>
+            </div>
+
+          </div>
+
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script type="module">
+    import { requireAuth } from './js/auth.js';
+    import { renderLayout, showToast } from './js/app.js';
+    import { apiRequest } from './js/api.js';
+    import { escapeHtml } from './js/utils.js';
+
+    const user = requireAuth();
+    if (user) {
+      renderLayout('Submit Ticket', '/new-ticket.html');
+
+      // Autofill device & branch from profile
+      const primary = user.primary_device || {};
+      const devName = typeof primary === 'object' ? (primary.device_name || 'CORP-LAPTOP-W11-842') : primary || 'CORP-LAPTOP-W11-842';
+      const officeLoc = typeof primary === 'object' ? (primary.office_location || 'US - New York HQ') : 'US - New York HQ';
+
+      document.getElementById('display-hostname').textContent = devName;
+      document.getElementById('display-branch').textContent = officeLoc;
+      document.getElementById('hostname').value = devName;
+      const promptDevLabel = document.getElementById('prompt-device-label');
+      if (promptDevLabel) promptDevLabel.textContent = devName;
+
+      const branchSelect = document.getElementById('branch-select');
+      for (let i = 0; i < branchSelect.options.length; i++) {
+        if (branchSelect.options[i].value.includes(officeLoc) || officeLoc.includes(branchSelect.options[i].value)) {
+          branchSelect.selectedIndex = i;
+          break;
+        }
+      }
+
+      // ── Tab Switching (Chat vs Classic Form) ──
+      const tabBtnChat = document.getElementById('tab-btn-chat');
+      const tabBtnForm = document.getElementById('tab-btn-form');
+      const viewChat = document.getElementById('view-ai-chat');
+      const viewForm = document.getElementById('view-classic-form');
+      const btnBackToChat = document.getElementById('btn-back-to-chat');
+
+      function showChatMode() {
+        tabBtnChat.classList.add('active');
+        tabBtnForm.classList.remove('active');
+        viewChat.style.display = 'block';
+        viewForm.style.display = 'none';
+        document.getElementById('chat-input').focus();
+      }
+
+      function showFormMode() {
+        tabBtnForm.classList.add('active');
+        tabBtnChat.classList.remove('active');
+        viewChat.style.display = 'none';
+        viewForm.style.display = 'block';
+      }
+
+      tabBtnChat.addEventListener('click', showChatMode);
+      tabBtnForm.addEventListener('click', showFormMode);
+      if (btnBackToChat) btnBackToChat.addEventListener('click', showChatMode);
+
+      // ── AI Chat Conversation State ──
+      const chatMessages = document.getElementById('chat-messages');
+      const chatInput = document.getElementById('chat-input');
+      const chatSendBtn = document.getElementById('chat-send-btn');
+      const chatTyping = document.getElementById('chat-typing');
+      const typingText = document.getElementById('typing-text');
+      const btnResetChat = document.getElementById('btn-reset-chat');
+
+      let conversationHistory = []; // { sender: 'user'|'ai', text: '...' }
+      let usedArticleIds = new Set(); // KB articles the assistant relied on (ranking feedback)
+      let detectedSubject = '';
+      let detectedCategory = 'general';
+      let detectedPriority = 'medium';
+      let isWaitingForAi = false;
+      let sessionFinished = false;
+
+      // Reset chat
+      btnResetChat.addEventListener('click', () => {
+        conversationHistory = [];
+        usedArticleIds = new Set();
+        detectedSubject = '';
+        detectedCategory = 'general';
+        detectedPriority = 'medium';
+        sessionFinished = false;
+        chatInput.disabled = false;
+        chatSendBtn.disabled = false;
+        chatMessages.innerHTML = `
+          <div class="chat-msg bot">
+            <div class="chat-avatar-mini bot">🤖</div>
+            <div class="chat-bubble">
+              <p><strong>Hi ${escapeHtml(user.name || 'there')}! 👋 I am your Virtual IT Assistant.</strong></p>
+              <p>Please type the technical issue or error you are experiencing in the box below. I will analyze your symptoms and guide you through an instant fix.</p>
+              <div style="font-size: 11px; color: var(--text-muted); margin-top: 6px;">
+                💡 If the issue cannot be resolved via self-service, I will immediately escalate your case to a human technician with a full diagnostic briefing.
+              </div>
+            </div>
+          </div>
+        `;
+        chatInput.focus();
+      });
+
+
+      // Format simple markdown into HTML
+      function formatBotReply(text) {
+        if (!text) return '';
+        let formatted = escapeHtml(text);
+        // Bold **text**
+        formatted = formatted.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+        // Inline code `code`
+        formatted = formatted.replace(/`([^`]+)`/g, '<code>$1</code>');
+        // Newlines to <br> or paragraphs
+        formatted = formatted.replace(/\n\n/g, '</p><p>').replace(/\n/g, '<br>');
+        return `<p>${formatted}</p>`;
+      }
+
+      // Append User Message to UI
+      function appendUserMessage(text) {
+        const div = document.createElement('div');
+        div.className = 'chat-msg user';
+        div.innerHTML = `
+          <div class="chat-avatar-mini user">👤</div>
+          <div class="chat-bubble">
+            <p>${escapeHtml(text)}</p>
+          </div>
+        `;
+        chatMessages.appendChild(div);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+      }
+
+      // Append AI Message to UI with Action Buttons
+      function appendAiMessage(replyData) {
+        const div = document.createElement('div');
+        div.className = 'chat-msg bot';
+
+        const category = replyData.category || detectedCategory || 'other';
+        const priority = replyData.priority || detectedPriority || 'medium';
+        const statusIntent = replyData.status_intent || 'troubleshoot';
+
+        let categoryBadge = '';
+        if (category && statusIntent === 'troubleshoot') {
+          const pillClass = `pill-${category}`;
+          categoryBadge = `
+            <div class="diagnosis-pill ${pillClass}">
+              <span>🎯 Classified: ${category.toUpperCase()}</span>
+              <span>•</span>
+              <span>Priority: ${priority.toUpperCase()}</span>
+            </div>
+          `;
+        }
+
+        let actionButtonsHtml = '';
+        if (statusIntent === 'troubleshoot' && !sessionFinished) {
+          actionButtonsHtml = `
+            <div class="chat-action-bar">
+              <button type="button" class="btn-action-resolved" data-action="resolved">
+                <span>✅</span> Yes, it's fixed!
+              </button>
+              <button type="button" class="btn-action-escalate" data-action="escalate">
+                <span>🧑‍💻</span> Still broken — Connect to Human Support
+              </button>
+            </div>
+          `;
+        } else if (statusIntent === 'clarify' && !sessionFinished) {
+          actionButtonsHtml = `
+            <div class="chat-action-bar">
+              <button type="button" class="btn-action-escalate" data-action="escalate">
+                <span>🧑‍💻</span> Connect to Human Support
+              </button>
+            </div>
+          `;
+        }
+
+        div.innerHTML = `
+          <div class="chat-avatar-mini bot">🤖</div>
+          <div class="chat-bubble">
+            ${categoryBadge}
+            <div class="bot-text-content">
+              ${formatBotReply(replyData.reply)}
+            </div>
+            ${actionButtonsHtml}
+          </div>
+        `;
+
+        chatMessages.appendChild(div);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+
+        // Attach action button handlers
+        const resBtn = div.querySelector('[data-action="resolved"]');
+        const escBtn = div.querySelector('[data-action="escalate"]');
+
+        if (resBtn) {
+          resBtn.addEventListener('click', () => handleMarkResolved());
+        }
+        if (escBtn) {
+          escBtn.addEventListener('click', () => handleEscalate());
+        }
+      }
+
+      // Handle User Sending a Message
+      async function handleSendMessage() {
+        const text = chatInput.value.trim();
+        if (!text || isWaitingForAi || sessionFinished) return;
+
+        chatInput.value = '';
+        chatInput.style.height = '24px';
+        chatInput.style.overflowY = 'hidden';
+        appendUserMessage(text);
+        conversationHistory.push({ sender: 'user', text: text });
+
+        // Show typing indicator
+        isWaitingForAi = true;
+        chatSendBtn.disabled = true;
+        chatTyping.style.display = 'flex';
+        const isGreetingText = /^(hello|hi|hey|hiya|howdy|good morning|good afternoon|good evening)\b/i.test(text);
+        typingText.textContent = isGreetingText
+          ? 'RelayDesk Assistant is typing...'
+          : 'Searching solutions for your issue...';
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+
+        try {
+          const res = await apiRequest('/tickets/ai-triage/chat', {
+            method: 'POST',
+            body: {
+              message: text,
+              chat_history: conversationHistory,
+              device_name: devName,
+              office_location: officeLoc
+            }
+          });
+
+          isWaitingForAi = false;
+          chatTyping.style.display = 'none';
+          chatSendBtn.disabled = false;
+
+          if (res.subject) detectedSubject = res.subject;
+          if (res.category && res.status_intent === 'troubleshoot') detectedCategory = res.category;
+          if (res.priority && res.status_intent === 'troubleshoot') detectedPriority = res.priority;
+
+          conversationHistory.push({ sender: 'ai', text: res.reply });
+          (res.used_articles || []).forEach(a => { if (a && Number.isInteger(a.id)) usedArticleIds.add(a.id); });
+          appendAiMessage(res);
+
+          // If the AI detected that the user stated the problem is resolved
+          if (res.status_intent === 'resolved') {
+            handleMarkResolved();
+          } else if (res.status_intent === 'escalate') {
+            handleEscalate();
+          }
+
+        } catch (err) {
+          isWaitingForAi = false;
+          chatTyping.style.display = 'none';
+          chatSendBtn.disabled = false;
+          showToast('Failed to contact AI Assistant: ' + err.message, 'error');
+
+          const errorDiv = document.createElement('div');
+          errorDiv.className = 'chat-msg bot';
+          errorDiv.innerHTML = `
+            <div class="chat-avatar-mini bot" style="background:#fee2e2; color:#ef4444;">⚠️</div>
+            <div class="chat-bubble" style="background:#fef2f2; border-color:#fecaca;">
+              <p>I experienced a network issue connecting to the triage engine. You can try typing again or switch to the <strong>Classic Ticket Form</strong> above.</p>
+            </div>
+          `;
+          chatMessages.appendChild(errorDiv);
+        }
+      }
+
+      // ── Handle Confirm Resolved (Deflection) ──
+      async function handleMarkResolved() {
+        if (sessionFinished) return;
+        sessionFinished = true;
+        chatInput.disabled = true;
+        chatSendBtn.disabled = true;
+
+        try {
+          const res = await apiRequest('/tickets/ai-triage/resolve', {
+            method: 'POST',
+            body: {
+              subject: detectedSubject || (conversationHistory[0]?.text || 'Self-Service IT Resolution'),
+              category: detectedCategory,
+              priority: detectedPriority,
+              messages: conversationHistory,
+              used_article_ids: [...usedArticleIds],
+              device_name: devName,
+              office_location: officeLoc
+            }
+          });
+
+          // Render Celebration Card in Chat
+          const celebrationDiv = document.createElement('div');
+          celebrationDiv.className = 'chat-msg bot';
+          celebrationDiv.innerHTML = `
+            <div class="chat-avatar-mini bot" style="background:#ecfdf5; color:#10b981; border-color:#a7f3d0;">🎉</div>
+            <div class="chat-bubble" style="background:#f0fdf4; border: 1.5px solid #86efac;">
+              <div style="font-size: 14px; font-weight: 800; color: #166534; margin-bottom: 6px;">
+                🎉 Issue Resolved via Self-Service!
+              </div>
+              <p style="color: #15803d; font-size: 13px;">
+                Awesome! Your issue has been logged as resolved. Thank you for using RelayDesk self-service assistance.
+              </p>
+              <div style="margin-top: 12px; padding-top: 10px; border-top: 1px solid #bbf7d0; display: flex; gap: 8px; flex-wrap: wrap;">
+                <a href="/tickets.html" class="btn btn-sm btn-primary" style="background:#166534; border-color:#166534; font-size: 12px;">
+                  View My Tickets →
+                </a>
+                <button type="button" id="btn-ask-another" class="btn btn-sm btn-secondary" style="font-size: 12px; background: white; border-color: #86efac; color: #15803d;">
+                  Ask Another Question
+                </button>
+              </div>
+            </div>
+          `;
+          chatMessages.appendChild(celebrationDiv);
+          chatMessages.scrollTop = chatMessages.scrollHeight;
+
+          showToast('Issue marked as resolved! Deflection recorded.', 'success');
+
+          celebrationDiv.querySelector('#btn-ask-another').addEventListener('click', () => {
+            btnResetChat.click();
+          });
+
+        } catch (err) {
+          showToast('Failed to record resolution: ' + err.message, 'error');
+        }
+      }
+
+      // ── Handle Escalate to Human Support ──
+      async function handleEscalate() {
+        if (sessionFinished) return;
+        sessionFinished = true;
+        chatInput.disabled = true;
+        chatSendBtn.disabled = true;
+
+        // Show escalation progress
+        chatTyping.style.display = 'flex';
+        typingText.textContent = 'Generating AI Handover Briefing & assigning specialist...';
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+
+        try {
+          const res = await apiRequest('/tickets/ai-triage/escalate', {
+            method: 'POST',
+            body: {
+              subject: detectedSubject || (conversationHistory[0]?.text || 'Escalated IT Support Request'),
+              category: detectedCategory,
+              priority: detectedPriority,
+              messages: conversationHistory,
+              used_article_ids: [...usedArticleIds],
+              device_name: devName,
+              office_location: officeLoc
+            }
+          });
+
+          chatTyping.style.display = 'none';
+
+          // Render Handover Card in Chat
+          const handoverDiv = document.createElement('div');
+          handoverDiv.className = 'chat-msg bot';
+          handoverDiv.innerHTML = `
+            <div class="chat-avatar-mini bot" style="background:#eef2ff; color:#4f46e5; border-color:#c7d2fe;">🛡️</div>
+            <div class="chat-bubble" style="background: #ffffff; border: 1.5px solid #c7d2fe; width: 100%;">
+              <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+                <div style="font-size: 14px; font-weight: 800; color: #3730a3;">
+                  🛡️ Ticket #${res.ticket_id} Handed Over to IT Engineering
+                </div>
+                <span class="badge badge-info" style="font-size: 10.5px;">Assigned</span>
+              </div>
+              
+              <p style="color: var(--text-muted); font-size: 12.5px; margin-bottom: 12px;">
+                Your case has been packaged with our full diagnostic briefing and transferred to our human technician queue.
+              </p>
+
+              <div class="handover-info-grid">
+                <div class="handover-info-box">
+                  <label>Assigned Specialist</label>
+                  <span>${escapeHtml(res.assigned_tech_name || 'IT Specialist')}</span>
+                </div>
+                <div class="handover-info-box">
+                  <label>Team Domain</label>
+                  <span>${escapeHtml(res.assigned_tech_team || 'Service Desk')}</span>
+                </div>
+                <div class="handover-info-box">
+                  <label>Priority</label>
+                  <span style="text-transform: capitalize;">${escapeHtml(res.priority || 'Medium')}</span>
+                </div>
+                <div class="handover-info-box">
+                  <label>Category</label>
+                  <span style="text-transform: capitalize;">${escapeHtml(res.category || 'General')}</span>
+                </div>
+              </div>
+
+              ${res.briefing_summary ? `
+                <div style="background: #f8fafc; border-left: 3px solid var(--primary); padding: 8px 12px; margin-bottom: 12px; border-radius: 4px; font-size: 12px; color: var(--text-body);">
+                  <strong style="color: var(--primary);">Briefing Sent to Technician:</strong>
+                  <div style="margin-top: 2px;">${escapeHtml(res.briefing_summary)}</div>
+                </div>
+              ` : ''}
+
+              <div style="margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border-subtle); display:flex; gap:10px; align-items:center;">
+                <a href="${res.redirect_url || `/ticket.html?id=${res.ticket_id}`}" class="btn btn-primary" style="font-size: 12.5px; padding: 8px 18px; text-decoration: none;">
+                  View Ticket & Live Updates →
+                </a>
+                <a href="/tickets.html" class="btn btn-secondary" style="font-size: 12.5px; padding: 8px 14px; text-decoration: none;">
+                  Back to Tickets
+                </a>
+              </div>
+            </div>
+          `;
+          chatMessages.appendChild(handoverDiv);
+          chatMessages.scrollTop = chatMessages.scrollHeight;
+
+          showToast(`Ticket #${res.ticket_id} created and assigned to ${res.assigned_tech_name}!`, 'success');
+
+        } catch (err) {
+          chatTyping.style.display = 'none';
+          showToast('Failed to escalate ticket: ' + err.message, 'error');
+        }
+      }
+
+      // Auto-grow textarea smoothly without scrollbars
+      function adjustTextareaHeight() {
+        chatInput.style.height = 'auto';
+        const newHeight = Math.min(chatInput.scrollHeight, 120);
+        chatInput.style.height = Math.max(24, newHeight) + 'px';
+        chatInput.style.overflowY = chatInput.scrollHeight > 120 ? 'auto' : 'hidden';
+      }
+      chatInput.addEventListener('input', adjustTextareaHeight);
+
+      // Input event listeners (Enter to send, Shift+Enter for newline)
+      chatSendBtn.addEventListener('click', handleSendMessage);
+      chatInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          handleSendMessage();
+        }
+      });
+
+      // Focus input on load
+      setTimeout(() => chatInput.focus(), 150);
+
+      // ─────────────────────────────────────────────────────────────
+      // Classic Form Handler (Fallback Tab)
+      // ─────────────────────────────────────────────────────────────
+      const catCards = document.querySelectorAll('.cat-card-option');
+      const catSelect = document.getElementById('category');
+
+      catCards.forEach(card => {
+        card.addEventListener('click', () => {
+          catCards.forEach(c => c.classList.remove('active'));
+          card.classList.add('active');
+          const val = card.getAttribute('data-cat');
+          catSelect.value = val;
+        });
+      });
+
+      const form = document.getElementById('ticket-form');
+      const submitBtn = document.getElementById('submit-btn');
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = `
+          <span style="display:inline-block; width:14px; height:14px; border:2px solid white; border-top-color:transparent; border-radius:50%; animation:spin 0.8s linear infinite; margin-right:6px;"></span>
+          <span>Creating Ticket...</span>
+        `;
+
+        const title = document.getElementById('title').value;
+        const category = document.getElementById('category').value;
+        const priority = document.getElementById('priority').value;
+        const description = document.getElementById('description').value;
+        const hostname = document.getElementById('hostname').value;
+        const branch = document.getElementById('branch-select').value;
+
+        try {
+          const res = await apiRequest('/tickets', {
+            method: 'POST',
+            body: {
+              subject: title,
+              category: category,
+              priority: priority,
+              description: description,
+              device_name: hostname,
+              office_location: branch
+            }
+          });
+
+          showToast('Ticket created successfully!', 'success');
+          setTimeout(() => {
+            window.location.href = `/ticket.html?id=${res.id}`;
+          }, 500);
+        } catch (err) {
+          showToast('Failed to create ticket: ' + err.message, 'error');
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = 'Submit Classic Ticket →';
+        }
+      });
+    }
+  </script>
+</body>
+</html>

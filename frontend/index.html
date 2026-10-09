@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NexusIT — Enterprise Service Desk</title>
+  <script type="module">
+    import { getUser } from './js/auth.js';
+    const user = getUser();
+    if (!user) {
+      window.location.replace('/login.html');
+    } else {
+      if (user.role === 'technician') window.location.replace('/queue.html');
+      else if (user.role === 'admin') window.location.replace('/metrics.html');
+      else window.location.replace('/tickets.html');
+    }
+  </script>
+</head>
+<body style="background: #f4f6fa; font-family: sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh;">
+  <p style="color: #64748b; font-size: 14px;">Redirecting to NexusIT Service Desk...</p>
+</body>
+</html>

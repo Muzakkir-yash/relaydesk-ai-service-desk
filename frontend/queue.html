@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ticket Queue — NexusIT Service Desk</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+  <div class="app-container">
+    <div class="main-wrapper">
+      <main class="content-body">
+        <div class="container-narrow">
+
+          <!-- Gradient Page Header -->
+          <div class="page-header-card">
+            <div style="display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 16px; position: relative; z-index: 1;">
+              <div>
+                <div class="section-tag">Support Operations</div>
+                <h1>Technician Incident Queue</h1>
+                <p>Triage, claim, and resolve escalated tickets with full AI context briefings.</p>
+              </div>
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <button id="refresh-btn" class="btn btn-sm" style="background: rgba(255,255,255,0.15); color: white; border-color: rgba(255,255,255,0.3); backdrop-filter: blur(4px);" title="Refresh queue">
+                  <span class="refresh-icon" style="display:inline-flex; align-items:center; justify-content:center; margin-right: 5px;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+                  </span>
+                  <span>Refresh</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tabs & Filters Card -->
+          <div class="card" style="padding: 16px 22px; margin-bottom: 16px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+
+              <div class="tab-bar">
+                <button class="tab-btn active" data-tab="all">
+                  <span>All Incidents</span>
+                  <span class="tab-counter" id="all-count">0</span>
+                </button>
+                <button class="tab-btn" data-tab="open">
+                  <span>Unclaimed</span>
+                  <span class="tab-counter" id="unclaimed-count">0</span>
+                </button>
+                <button class="tab-btn" data-tab="in_progress">
+                  <span>In Progress</span>
+                  <span class="tab-counter" id="in-progress-count">0</span>
+                </button>
+                <button class="tab-btn" data-tab="resolved">
+                  <span>Resolved</span>
+                  <span class="tab-counter" id="resolved-count">0</span>
+                </button>
+              </div>
+
+              <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                <select id="date-filter-select" class="form-select" style="width: auto; padding: 7px 12px; font-size: 12.5px;">
+                  <option value="all">All Time</option>
+                  <option value="today">Today</option>
+                  <option value="this_week">This Week</option>
+                  <option value="this_month">This Month</option>
+                  <option value="this_year">This Year</option>
+                  <option value="last_year">Last Year</option>
+                  <option value="older_1yr">Older than 1 Year</option>
+                </select>
+
+                <div class="search-wrapper">
+                  <span class="search-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                  </span>
+                  <input type="text" id="search-input" class="form-input search-input" placeholder="Search tickets..." style="width: 220px; font-size: 12.5px; padding-top: 7px; padding-bottom: 7px;" />
+                  <span id="clear-search-btn" class="search-clear">✕</span>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- Queue Table Card -->
+          <div class="card" style="padding: 0; overflow: hidden;">
+            <div class="table-responsive">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th style="width: 48%;">Incident Details</th>
+                    <th style="width: 16%;">Status</th>
+                    <th style="width: 16%;">Priority</th>
+                    <th style="width: 20%;">SLA Target</th>
+                  </tr>
+                </thead>
+                <tbody id="queue-tbody">
+                  <tr>
+                    <td colspan="4" style="padding: 0;">
+                      <div style="padding: 32px 24px;">
+                        <div class="skeleton skeleton-line wide"></div>
+                        <div class="skeleton skeleton-line medium" style="margin-top: 14px;"></div>
+                        <div class="skeleton skeleton-line wide" style="margin-top: 14px;"></div>
+                        <div class="skeleton skeleton-line short" style="margin-top: 14px;"></div>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script type="module">
+    import { requireAuth } from './js/auth.js';
+    import { renderLayout, showToast } from './js/app.js';
+    import { apiRequest } from './js/api.js';
+    import { escapeHtml } from './js/utils.js';
+
+    const user = requireAuth(['technician', 'admin']);
+    if (user) {
+      renderLayout('Incident Queue', '/queue.html');
+
+      let allTickets = [];
+      let currentTab = 'all';
+      let dateFilter = 'all';
+      let searchQuery = '';
+
+      async function loadQueue() {
+        try {
+          const tickets = await apiRequest('/tickets');
+          allTickets = tickets;
+          updateCounts();
+          renderQueue();
+        } catch (err) {
+          showToast('Failed to load queue: ' + err.message, 'error');
+        }
+      }
+
+      function updateCounts() {
+        const allCount = allTickets.length;
+        const unclaimed = allTickets.filter(t => t.status === 'open' || t.status === 'ai_handling').length;
+        const inProgress = allTickets.filter(t => t.status === 'in_progress').length;
+        const resolved = allTickets.filter(t => t.status === 'resolved' || t.status === 'closed' || t.status === 'ai_deflected').length;
+        
+        document.getElementById('all-count').textContent = allCount;
+        document.getElementById('unclaimed-count').textContent = unclaimed;
+        document.getElementById('in-progress-count').textContent = inProgress;
+        document.getElementById('resolved-count').textContent = resolved;
+      }
+
+      function filterByDate(ticket) {
+        if (dateFilter === 'all') return true;
+        const created = new Date(ticket.created_at);
+        const now = new Date();
+        const currentYear = now.getFullYear();
+
+        if (dateFilter === 'today') return created.toDateString() === now.toDateString();
+        if (dateFilter === 'this_week') return created >= new Date(now.getTime() - 7 * 86400000);
+        if (dateFilter === 'this_month') return created.getMonth() === now.getMonth() && created.getFullYear() === currentYear;
+        if (dateFilter === 'this_year') return created.getFullYear() === currentYear;
+        if (dateFilter === 'last_year') return created.getFullYear() === currentYear - 1;
+        if (dateFilter === 'older_1yr') return created < new Date(now.getTime() - 365 * 86400000);
+        return true;
+      }
+
+      function getSLAClass(ticket) {
+        if (!ticket.sla_target_at) return 'sla-safe';
+        const diff = new Date(ticket.sla_target_at).getTime() - Date.now();
+        if (diff < 0) return 'sla-breached';
+        if (diff < 30 * 60 * 1000) return 'sla-warning';
+        return 'sla-safe';
+      }
+
+      function renderQueue() {
+        const tbody = document.getElementById('queue-tbody');
+        let filtered = allTickets.filter(t => {
+          if (currentTab === 'open' && t.status !== 'open' && t.status !== 'ai_handling') return false;
+          if (currentTab === 'in_progress' && t.status !== 'in_progress') return false;
+          if (currentTab === 'resolved' && t.status !== 'resolved' && t.status !== 'closed' && t.status !== 'ai_deflected') return false;
+
+          if (!filterByDate(t)) return false;
+
+          if (searchQuery) {
+            const q = searchQuery.toLowerCase();
+            return (t.title && t.title.toLowerCase().includes(q)) ||
+                   (t.subject && t.subject.toLowerCase().includes(q)) ||
+                   (t.description && t.description.toLowerCase().includes(q)) ||
+                   (t.hostname && t.hostname.toLowerCase().includes(q));
+          }
+          return true;
+        });
+
+        if (filtered.length === 0) {
+          tbody.innerHTML = `
+            <tr>
+              <td colspan="4" style="padding: 0;">
+                <div class="empty-state fade-in">
+                  <div class="empty-state-icon">📋</div>
+                  <div class="empty-state-title">Queue is all clear!</div>
+                  <div class="empty-state-desc">${searchQuery ? 'No tickets match your search. Try a different keyword.' : 'No incidents match this filter. Great work keeping the queue clear!'}</div>
+                </div>
+              </td>
+            </tr>`;
+          return;
+        }
+
+        const statusLabels = {
+          ai_handling: 'AI Triage', open: 'AI Triage', in_progress: 'In Progress',
+          ai_deflected: 'Deflected', resolved: 'Resolved', closed: 'Closed', escalated: 'Escalated'
+        };
+
+        tbody.innerHTML = filtered.map(t => {
+          const title = t.subject || t.title || 'Untitled Ticket';
+          const statusKey = (t.status || 'open').replace(/_/g, '-');
+          const priorityClass = `priority-${(t.priority || 'medium').toLowerCase()}`;
+          const dateStr = new Date(t.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+          const branchBadge = t.office_location ? `<span class="category-pill" style="font-size: 10.5px;">📍 ${escapeHtml(t.office_location)}</span>` : '';
+          const hasBriefing = t.briefing ? `<span style="font-size: 9px; font-weight: 700; padding: 2px 6px; background: #faf5ff; color: #7c3aed; border: 1px solid #e9d5ff; border-radius: 4px; margin-left: 4px;">&#9889; AI BRIEF</span>` : '';
+          const slaClass = getSLAClass(t);
+          const slaText = t.sla_target_at
+            ? new Date(t.sla_target_at).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
+            : 'Std 4h';
+
+          return `
+            <tr onclick="window.location.href='/ticket.html?id=${t.id}'" style="cursor: pointer;">
+              <td>
+                <div style="font-weight: 700; color: var(--text-main); font-size: 13.5px; display: flex; align-items: center; gap: 4px; flex-wrap: wrap;">
+                  <span style="color: var(--primary); font-weight: 800; font-size: 11.5px; font-family: var(--font-mono);">#${t.id}</span>
+                  ${escapeHtml(title)}${hasBriefing}
+                </div>
+                <div style="display: flex; align-items: center; gap: 7px; margin-top: 6px; font-size: 11.5px; color: var(--text-muted); flex-wrap: wrap;">
+                  <span>${dateStr}</span>
+                  <span>&#183;</span>
+                  <span class="category-pill">${escapeHtml(t.category || 'General')}</span>
+                  ${branchBadge ? `<span>&#183;</span>${branchBadge}` : ''}
+                  ${(t.device_name || t.hostname) ? `<span>&#183;</span><span style="font-family: var(--font-mono); font-size: 10.5px; background: #f1f5f9; padding: 1px 6px; border-radius: 4px;">${escapeHtml(t.device_name || t.hostname)}</span>` : ''}
+                </div>
+              </td>
+              <td><span class="badge-text status-${statusKey}">${statusLabels[t.status] || t.status}</span></td>
+              <td><span class="badge-text ${priorityClass}">${(t.priority || 'Medium').charAt(0).toUpperCase() + (t.priority || 'Medium').slice(1)}</span></td>
+              <td>
+                <span class="sla-timer ${slaClass}" style="font-size: 10.5px; padding: 3px 9px;">
+                  &#9201; ${slaText}
+                </span>
+              </td>
+            </tr>
+          `;
+        }).join('');
+      }
+
+
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          currentTab = btn.getAttribute('data-tab');
+          renderQueue();
+        });
+      });
+
+      document.getElementById('date-filter-select')?.addEventListener('change', (e) => {
+        dateFilter = e.target.value;
+        renderQueue();
+      });
+
+      const searchInput = document.getElementById('search-input');
+      const clearBtn = document.getElementById('clear-search-btn');
+
+      searchInput?.addEventListener('input', (e) => {
+        searchQuery = e.target.value;
+        if (clearBtn) clearBtn.style.display = searchQuery ? 'inline' : 'none';
+        renderQueue();
+      });
+
+      clearBtn?.addEventListener('click', () => {
+        if (searchInput) searchInput.value = '';
+        searchQuery = '';
+        clearBtn.style.display = 'none';
+        renderQueue();
+      });
+
+      document.getElementById('refresh-btn')?.addEventListener('click', async () => {
+        const btn = document.getElementById('refresh-btn');
+        const icon = btn?.querySelector('.refresh-icon');
+        const tbody = document.getElementById('queue-tbody');
+
+        if (btn) {
+          btn.disabled = true;
+          btn.style.opacity = '0.75';
+        }
+        if (icon) {
+          icon.classList.add('spin-anim');
+        }
+        if (tbody) {
+          tbody.style.transition = 'opacity 0.2s ease';
+          tbody.style.opacity = '0.35';
+        }
+
+        // Guarantee smooth visible spin for at least 500ms
+        const minSpin = new Promise(resolve => setTimeout(resolve, 500));
+        await Promise.all([loadQueue(), minSpin]);
+
+        if (tbody) {
+          tbody.style.opacity = '1';
+        }
+        if (icon) {
+          icon.classList.remove('spin-anim');
+        }
+        if (btn) {
+          btn.disabled = false;
+          btn.style.opacity = '1';
+        }
+      });
+
+      loadQueue();
+    }
+  </script>
+</body>
+</html>

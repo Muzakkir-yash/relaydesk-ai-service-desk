@@ -1,0 +1,22 @@
+[
+  {"name": "typo vpn", "turns": ["vpn wont conect from home pls help"], "expect_intent": ["troubleshoot"], "expect_category": ["network"]},
+  {"name": "slang wifi", "turns": ["wifi keeps cutting out in the meeting room"], "expect_intent": ["troubleshoot"], "expect_category": ["network"]},
+  {"name": "indirect password", "turns": ["it keeps telling me my credentials are wrong but im typing the right ones"], "expect_intent": ["troubleshoot", "clarify", "escalate"], "expect_category": ["access", "account"]},
+  {"name": "expired password", "turns": ["windows says my password has expired and wont let me change it"], "expect_intent": ["troubleshoot", "escalate"], "expect_category": ["access", "account"]},
+  {"name": "excel crash", "turns": ["excel closes by itself every time i open a big spreadsheet"], "expect_intent": ["troubleshoot"], "expect_category": ["software"]},
+  {"name": "no sound", "turns": ["no sound coming out of my laptop speakers"], "expect_intent": ["troubleshoot"], "expect_category": ["hardware"]},
+  {"name": "webcam black", "turns": ["my camera shows a black image in zoom"], "expect_intent": ["troubleshoot"]},
+  {"name": "keyboard keys", "turns": ["some keys on my keyboard stopped typing"], "expect_intent": ["troubleshoot"], "expect_category": ["hardware"]},
+  {"name": "laptop wont charge", "turns": ["laptop isnt charging even when plugged in"], "expect_intent": ["troubleshoot", "escalate"], "expect_category": ["hardware"]},
+  {"name": "email bounce", "turns": ["emails I send to a client keep bouncing back"], "expect_intent": ["troubleshoot", "escalate"], "expect_category": ["software"]},
+  {"name": "printer offline", "turns": ["printer shows as offline on my computer"], "expect_intent": ["troubleshoot"], "expect_category": ["hardware"]},
+  {"name": "scam text", "turns": ["got a weird email asking me to verify my payroll details, is it real?"], "expect_intent": ["escalate"], "expect_priority": ["high", "critical"]},
+  {"name": "ransom popup", "turns": ["a popup says my files are encrypted and I need to pay bitcoin"], "expect_intent": ["escalate"], "expect_priority": ["high", "critical"]},
+  {"name": "coffee spill", "turns": ["i spilled coffee on my keyboard and now it does nothing"], "expect_intent": ["escalate"], "expect_category": ["hardware"]},
+  {"name": "new starter access", "turns": ["new joiner starting monday needs a laptop and email account"], "expect_intent": ["escalate"]},
+  {"name": "polite human request", "turns": ["could someone from IT call me please"], "expect_intent": ["escalate"]},
+  {"name": "confirm fixed casual", "turns": ["teams wont open", "ok restarting it did the trick"], "expect_intent": ["resolved"]},
+  {"name": "not fixed casual", "turns": ["outlook keeps asking for my password", "nope same thing", "still asking, this is so annoying"], "expect_intent": ["escalate"]},
+  {"name": "whole building down", "turns": ["the entire office lost internet 10 minutes ago"], "expect_intent": ["escalate", "troubleshoot"], "expect_priority": ["critical", "high"]},
+  {"name": "how-to question", "turns": ["how do I connect to the office printer from my laptop?"], "expect_intent": ["troubleshoot"]}
+]

@@ -1,0 +1,22 @@
+[
+  {"name": "mapped drive gone", "turns": ["my S drive disappeared from file explorer this morning"], "expect_intent": ["troubleshoot"]},
+  {"name": "screen too big", "turns": ["everything on my screen suddenly looks huge"], "expect_intent": ["troubleshoot", "clarify"], "expect_category": ["hardware", "software"]},
+  {"name": "calendar sharing", "turns": ["my manager can't see my calendar anymore"], "expect_intent": ["troubleshoot", "clarify"]},
+  {"name": "teams status stuck", "turns": ["teams shows me as away even when i'm working"], "expect_intent": ["troubleshoot"], "expect_category": ["software"]},
+  {"name": "usb headset crackle", "turns": ["my usb headset makes a buzzing noise on calls"], "expect_intent": ["troubleshoot"], "expect_category": ["hardware"]},
+  {"name": "cant login remote", "turns": ["cannot sign in to the remote desktop, says my account is not authorised"], "expect_intent": ["troubleshoot", "escalate"], "expect_category": ["access", "network"]},
+  {"name": "boss impersonation", "turns": ["i got a whatsapp from someone claiming to be our CFO asking me to transfer money"], "expect_intent": ["escalate"], "expect_priority": ["high", "critical"]},
+  {"name": "weird login alert", "turns": ["microsoft emailed me about a sign in from russia that wasn't me"], "expect_intent": ["escalate"], "expect_priority": ["high", "critical"]},
+  {"name": "stolen bag", "turns": ["my bag with the company laptop got stolen at the station"], "expect_intent": ["escalate"], "expect_priority": ["high", "critical"]},
+  {"name": "need visio", "turns": ["could I get Visio put on my machine for diagrams"], "expect_intent": ["escalate"], "expect_category": ["software"]},
+  {"name": "folder permissions", "turns": ["I need to be added to the legal team's folder"], "expect_intent": ["escalate"], "expect_category": ["access"]},
+  {"name": "team wide email down", "turns": ["none of us in accounts are getting emails since lunch"], "expect_intent": ["escalate", "troubleshoot"], "expect_priority": ["critical", "high"]},
+  {"name": "want callback", "turns": ["I'd like somebody to ring me about this"], "expect_intent": ["escalate"]},
+  {"name": "fixed after update", "turns": ["zoom keeps freezing", "updated it like you said and it's smooth now"], "expect_intent": ["resolved"]},
+  {"name": "two misses", "turns": ["my onedrive won't sync", "didn't help", "still stuck on processing changes"], "expect_intent": ["escalate"]},
+  {"name": "hello problem", "turns": ["hello, my outlook search returns nothing"], "expect_intent": ["troubleshoot"], "expect_category": ["software"]},
+  {"name": "just hello", "turns": ["hey good morning"], "expect_intent": ["greeting", "clarify"]},
+  {"name": "pure vague", "turns": ["my laptop is being a pain today"], "expect_intent": ["clarify"]},
+  {"name": "cracked phone", "turns": ["work phone fell and the glass is shattered"], "expect_intent": ["escalate"], "expect_category": ["hardware"]},
+  {"name": "printer how-to", "turns": ["how do I scan a document to my email"], "expect_intent": ["troubleshoot", "clarify"]}
+]

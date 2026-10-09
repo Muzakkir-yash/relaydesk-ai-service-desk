@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tickets — NexusIT Service Desk</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+  <div class="app-container">
+    <div class="main-wrapper">
+      <main class="content-body">
+        <div class="container-narrow">
+          
+          <!-- Page Header Card -->
+          <div class="card" style="padding: 24px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;">
+              <div>
+                <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--primary);">Support Desk</div>
+                <h1 style="font-size: 22px; font-weight: 800; color: var(--text-main); margin-top: 2px;">Support Tickets</h1>
+                <p style="font-size: 13px; color: var(--text-muted); margin-top: 2px;">Track and manage your IT support requests and real-time technician updates.</p>
+              </div>
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <button id="refresh-btn" class="btn btn-secondary btn-sm" title="Refresh Tickets">
+                  <span class="refresh-icon" style="font-size: 13px; margin-right: 4px;">↻</span>
+                  <span>Refresh</span>
+                </button>
+                <a href="/new-ticket.html" class="btn btn-primary btn-sm">+ New Ticket</a>
+              </div>
+            </div>
+
+            <!-- Filters & Tabs Row -->
+            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border-subtle);">
+              
+              <!-- Tabs with counters on all tabs -->
+              <div class="tab-bar">
+                <button class="tab-btn active" data-tab="all">
+                  <span>All</span>
+                  <span class="tab-counter" id="all-count">0</span>
+                </button>
+                <button class="tab-btn" data-tab="in_progress">
+                  <span>In Progress</span>
+                  <span class="tab-counter" id="in-progress-count">0</span>
+                </button>
+                <button class="tab-btn" data-tab="ai_deflected">
+                  <span>AI Deflected</span>
+                  <span class="tab-counter" id="deflected-count">0</span>
+                </button>
+                <button class="tab-btn" data-tab="resolved">
+                  <span>Resolved</span>
+                  <span class="tab-counter" id="resolved-count">0</span>
+                </button>
+              </div>
+
+              <!-- Date & Search Tools -->
+              <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                <!-- Date Filter Dropdown -->
+                <select id="date-filter-select" class="form-select" style="width: auto; padding: 7px 12px; font-size: 12.5px;">
+                  <option value="all">Date: All Time</option>
+                  <option value="today">Today</option>
+                  <option value="this_week">This Week</option>
+                  <option value="this_month">This Month</option>
+                  <option value="this_year">This Year</option>
+                  <option value="last_year">Last Year</option>
+                  <option value="older_1yr">Older than 1 Year</option>
+                </select>
+
+                <!-- Search Input with clear icon -->
+                <div style="position: relative; display: flex; align-items: center;">
+                  <input type="text" id="search-input" class="form-input" placeholder="Search tickets..." style="width: 220px; padding: 7px 28px 7px 12px; font-size: 12.5px;" />
+                  <span id="clear-search-btn" style="position: absolute; right: 8px; cursor: pointer; color: var(--text-subtle); display: none; font-size: 12px;">✕</span>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- Tickets Table Card -->
+          <div class="card" style="padding: 0; overflow: hidden;">
+            <div class="table-responsive">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th style="width: 55%;">Ticket Information</th>
+                    <th style="width: 20%;">Status</th>
+                    <th style="width: 20%;">Priority</th>
+                    <th style="width: 5%;"></th>
+                  </tr>
+                </thead>
+                <tbody id="tickets-tbody">
+                  <tr>
+                    <td colspan="4" style="text-align: center; padding: 40px; color: var(--text-muted);">Loading tickets...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script type="module">
+    import { requireAuth } from './js/auth.js';
+    import { renderLayout, showToast } from './js/app.js';
+    import { apiRequest } from './js/api.js';
+    import { escapeHtml } from './js/utils.js';
+
+    const user = requireAuth();
+    if (user) {
+      renderLayout(user.role === 'admin' ? 'All Tickets' : 'My Tickets', '/tickets.html');
+
+      let allTickets = [];
+      let currentTab = 'all';
+      let dateFilter = 'all';
+      let searchQuery = '';
+
+      async function loadTickets() {
+        try {
+          const tickets = await apiRequest('/tickets');
+          allTickets = tickets;
+          updateTabCounts();
+          renderTickets();
+        } catch (err) {
+          showToast('Failed to load tickets: ' + err.message, 'error');
+        }
+      }
+
+      function updateTabCounts() {
+        const allCount = allTickets.length;
+        const inProgress = allTickets.filter(t => t.status === 'in_progress').length;
+        const deflected = allTickets.filter(t => t.status === 'ai_deflected' || t.status === 'deflected').length;
+        const resolved = allTickets.filter(t => t.status === 'resolved' || t.status === 'closed').length;
+        const allEl = document.getElementById('all-count');
+        const inProgEl = document.getElementById('in-progress-count');
+        const deflEl = document.getElementById('deflected-count');
+        const resEl = document.getElementById('resolved-count');
+        if (allEl) allEl.textContent = allCount;
+        if (inProgEl) inProgEl.textContent = inProgress;
+        if (deflEl) deflEl.textContent = deflected;
+        if (resEl) resEl.textContent = resolved;
+      }
+
+      function filterByDate(ticket) {
+        if (dateFilter === 'all') return true;
+        const created = new Date(ticket.created_at);
+        const now = new Date();
+        const currentYear = now.getFullYear();
+
+        if (dateFilter === 'today') {
+          return created.toDateString() === now.toDateString();
+        } else if (dateFilter === 'this_week') {
+          const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+          return created >= weekAgo;
+        } else if (dateFilter === 'this_month') {
+          return created.getMonth() === now.getMonth() && created.getFullYear() === currentYear;
+        } else if (dateFilter === 'this_year') {
+          return created.getFullYear() === currentYear;
+        } else if (dateFilter === 'last_year') {
+          return created.getFullYear() === currentYear - 1;
+        } else if (dateFilter === 'older_1yr') {
+          const oneYearAgo = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
+          return created < oneYearAgo;
+        }
+        return true;
+      }
+
+      function renderTickets() {
+        const tbody = document.getElementById('tickets-tbody');
+        let filtered = allTickets.filter(t => {
+          // Tab status filter
+          if (currentTab === 'in_progress' && t.status !== 'in_progress') return false;
+          if (currentTab === 'ai_deflected' && t.status !== 'ai_deflected' && t.status !== 'deflected') return false;
+          if (currentTab === 'resolved' && t.status !== 'resolved' && t.status !== 'closed') return false;
+          
+          // Date filter
+          if (!filterByDate(t)) return false;
+
+          // Search
+          if (searchQuery) {
+            const q = searchQuery.toLowerCase();
+            return (t.title && t.title.toLowerCase().includes(q)) ||
+                   (t.subject && t.subject.toLowerCase().includes(q)) ||
+                   (t.description && t.description.toLowerCase().includes(q)) ||
+                   (t.category && t.category.toLowerCase().includes(q));
+          }
+          return true;
+        });
+
+        if (filtered.length === 0) {
+          tbody.innerHTML = `
+            <tr>
+              <td colspan="4" style="text-align: center; padding: 48px 24px; color: var(--text-muted);">
+                <div style="font-size: 36px; margin-bottom: 10px;">🎫</div>
+                <div style="font-weight: 700; color: var(--text-main); font-size: 15px; margin-bottom: 4px;">No support tickets found</div>
+                <div style="font-size: 12.5px; margin-bottom: 16px;">You don't have any tickets matching this filter. Need assistance?</div>
+                <a href="/new-ticket.html" class="btn btn-primary btn-sm">+ Submit New Request</a>
+              </td>
+            </tr>
+          `;
+          return;
+        }
+
+        tbody.innerHTML = filtered.map(t => {
+          const title = t.subject || t.title || 'Untitled Ticket';
+          const statusLabels = {
+            ai_handling: 'AI Triage',
+            open: 'AI Triage',
+            in_progress: 'In Progress',
+            ai_deflected: 'Deflected',
+            deflected: 'Deflected',
+            resolved: 'Resolved',
+            closed: 'Closed'
+          };
+          const statusClass = `status-${(t.status || 'open').replace('_', '-')}`;
+          const priorityClass = `priority-${(t.priority || 'medium').toLowerCase()}`;
+          const dateStr = new Date(t.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+          const branchBadge = t.office_location ? `<span class="category-pill" style="font-size: 10.5px;">📍 ${escapeHtml(t.office_location)}</span>` : '';
+
+          return `
+            <tr onclick="window.location.href='/ticket.html?id=${t.id}'" style="cursor: pointer;">
+              <td>
+                <div style="font-weight: 700; color: var(--text-main); font-size: 14px;">
+                  <span style="color: var(--primary); margin-right: 6px; font-weight: 800;">#${t.id}</span>
+                  ${escapeHtml(title)}
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px; margin-top: 6px; font-size: 12px; color: var(--text-muted); flex-wrap: wrap;">
+                  <span>${dateStr}</span>
+                  <span>•</span>
+                  <span class="category-pill">${escapeHtml(t.category || 'General')}</span>
+                  ${branchBadge ? `<span>•</span>${branchBadge}` : ''}
+                  ${(t.device_name || t.hostname) ? `<span>•</span><span style="font-family: var(--font-mono); font-size: 11px; background: #f1f5f9; padding: 1px 6px; border-radius: var(--radius-xs);">${escapeHtml(t.device_name || t.hostname)}</span>` : ''}
+                </div>
+              </td>
+              <td>
+                <span class="badge-text ${statusClass}">${escapeHtml(statusLabels[t.status] || t.status)}</span>
+              </td>
+              <td>
+                <span class="badge-text ${priorityClass}">${(t.priority || 'Medium').charAt(0).toUpperCase() + (t.priority || 'Medium').slice(1)}</span>
+              </td>
+              <td style="color: var(--text-subtle); font-size: 18px; text-align: right; padding-right: 20px;">
+                ›
+              </td>
+            </tr>
+          `;
+        }).join('');
+      }
+
+
+      // Event Listeners
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          currentTab = btn.getAttribute('data-tab');
+          renderTickets();
+        });
+      });
+
+      document.getElementById('date-filter-select')?.addEventListener('change', (e) => {
+        dateFilter = e.target.value;
+        renderTickets();
+      });
+
+      const searchInput = document.getElementById('search-input');
+      const clearBtn = document.getElementById('clear-search-btn');
+
+      searchInput?.addEventListener('input', (e) => {
+        searchQuery = e.target.value;
+        if (clearBtn) {
+          clearBtn.style.display = searchQuery ? 'inline' : 'none';
+        }
+        renderTickets();
+      });
+
+      clearBtn?.addEventListener('click', () => {
+        if (searchInput) searchInput.value = '';
+        searchQuery = '';
+        clearBtn.style.display = 'none';
+        renderTickets();
+      });
+
+      document.getElementById('refresh-btn')?.addEventListener('click', async () => {
+        const btn = document.getElementById('refresh-btn');
+        const icon = btn?.querySelector('.refresh-icon');
+        const tbody = document.getElementById('tickets-tbody');
+
+        if (btn) {
+          btn.disabled = true;
+          btn.style.opacity = '0.75';
+        }
+        if (icon) {
+          icon.classList.add('spin-anim');
+        }
+        if (tbody) {
+          tbody.style.transition = 'opacity 0.2s ease';
+          tbody.style.opacity = '0.35';
+        }
+
+        // Guarantee a smooth visible spin for at least 500ms
+        const minSpin = new Promise(resolve => setTimeout(resolve, 500));
+        await Promise.all([loadTickets(), minSpin]);
+
+        if (tbody) {
+          tbody.style.opacity = '1';
+        }
+        if (icon) {
+          icon.classList.remove('spin-anim');
+        }
+        if (btn) {
+          btn.disabled = false;
+          btn.style.opacity = '1';
+        }
+      });
+
+      loadTickets();
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Audit Log — NexusIT Service Desk</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+  <div class="app-container">
+    <div class="main-wrapper">
+      <main class="content-body">
+        <div class="container-narrow">
+
+          <div class="card" style="padding: 24px; margin-bottom: 16px;">
+            <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--primary);">Administration</div>
+            <h1 style="font-size: 22px; font-weight: 800; color: var(--text-main); margin-top: 2px;">Audit Log</h1>
+            <p style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">Every sign-in, ticket change, escalation, playbook run and admin action — who did what, and when.</p>
+          </div>
+
+          <div class="card" style="padding: 14px 16px; margin-bottom: 16px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+            <input type="search" id="f-search" class="form-input" placeholder="Search details (e.g. an email or ticket #)" style="flex: 1 1 220px;" />
+            <select id="f-actor" class="form-select" style="flex: 0 1 160px;">
+              <option value="">All actors</option>
+              <option value="user">End users</option>
+              <option value="technician">Technicians</option>
+              <option value="admin">Admins</option>
+              <option value="ai">AI / system</option>
+            </select>
+            <select id="f-action" class="form-select" style="flex: 0 1 200px;">
+              <option value="">All actions</option>
+            </select>
+          </div>
+
+          <div class="card" style="padding: 0; overflow: hidden;">
+            <div class="table-responsive">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th style="white-space: nowrap;">When</th>
+                    <th>Who</th>
+                    <th>Action</th>
+                    <th>Details</th>
+                  </tr>
+                </thead>
+                <tbody id="audit-tbody">
+                  <tr><td colspan="4" style="text-align: center; padding: 48px; color: var(--text-muted);">Loading audit log...</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div style="padding: 12px; text-align: center; border-top: 1px solid var(--border-subtle);">
+              <button id="load-more-btn" class="btn btn-secondary btn-sm" style="display: none;">Load older entries</button>
+            </div>
+          </div>
+
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script type="module">
+    import { requireAuth } from './js/auth.js';
+    import { renderLayout, showToast } from './js/app.js';
+    import { apiRequest } from './js/api.js';
+    import { escapeHtml } from './js/utils.js';
+
+    const PAGE_SIZE = 50;
+    const ACTOR_STYLES = {
+      admin: 'background: #fef3c7; color: #92400e; border: 1px solid #fde68a;',
+      technician: 'background: #f5f3ff; color: #6d28d9; border: 1px solid #ddd6fe;',
+      user: 'background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe;',
+      ai: 'background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0;',
+    };
+    // Actions worth drawing the eye to
+    const ALERT_ACTIONS = new Set(['login_failed', 'user_deleted', 'kb_article_deleted', 'delete_outage_banner']);
+
+    const admin = requireAuth(['admin']);
+    if (admin) {
+      renderLayout('Audit Log', '/audit.html');
+
+      const tbody = document.getElementById('audit-tbody');
+      const loadMoreBtn = document.getElementById('load-more-btn');
+      let offset = 0;
+
+      function filters() {
+        const params = new URLSearchParams();
+        const q = document.getElementById('f-search').value.trim();
+        const actor = document.getElementById('f-actor').value;
+        const action = document.getElementById('f-action').value;
+        if (q) params.set('q', q);
+        if (actor) params.set('actor_type', actor);
+        if (action) params.set('action', action);
+        return params;
+      }
+
+      function row(e) {
+        const when = new Date(e.created_at + (e.created_at.endsWith('Z') ? '' : 'Z'));
+        const who = e.actor_name || (e.actor_type === 'ai' ? 'AI / system' : (e.actor_id ? `User #${e.actor_id}` : 'Unknown'));
+        const actionLabel = e.action.replace(/_/g, ' ');
+        const alert = ALERT_ACTIONS.has(e.action);
+        return `
+          <tr>
+            <td style="white-space: nowrap; font-size: 12px; color: var(--text-muted);" title="${escapeHtml(when.toISOString())}">
+              ${escapeHtml(when.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }))}
+            </td>
+            <td>
+              <div style="font-weight: 600; font-size: 13px; color: var(--text-main);">${escapeHtml(who)}</div>
+              <span class="badge-text" style="${ACTOR_STYLES[e.actor_type] || ''} font-size: 10px; margin-top: 3px; display: inline-block;">${escapeHtml(e.actor_type)}</span>
+            </td>
+            <td style="font-size: 12.5px; font-weight: 600; white-space: nowrap; ${alert ? 'color: #dc2626;' : 'color: var(--text-main);'}">
+              ${escapeHtml(actionLabel)}
+            </td>
+            <td style="font-size: 12.5px; color: var(--text-body); line-height: 1.5;">
+              ${escapeHtml(e.detail || '')}
+              ${e.target_type === 'ticket' && e.target_id ? ` <a href="/ticket.html?id=${encodeURIComponent(e.target_id)}" style="font-weight: 600;">View ticket →</a>` : ''}
+            </td>
+          </tr>`;
+      }
+
+      async function load(reset) {
+        if (reset) {
+          offset = 0;
+          tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 32px; color: var(--text-muted);">Loading…</td></tr>';
+        }
+        const params = filters();
+        params.set('limit', PAGE_SIZE);
+        params.set('offset', offset);
+        try {
+          const entries = await apiRequest(`/metrics/audit-log?${params}`);
+          if (reset) tbody.innerHTML = '';
+          if (reset && entries.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 48px; color: var(--text-muted);">No matching entries.</td></tr>';
+          }
+          tbody.insertAdjacentHTML('beforeend', entries.map(row).join(''));
+          offset += entries.length;
+          loadMoreBtn.style.display = entries.length === PAGE_SIZE ? 'inline-flex' : 'none';
+        } catch (err) {
+          showToast('Failed to load audit log: ' + err.message, 'error');
+        }
+      }
+
+      async function loadActions() {
+        try {
+          const actions = await apiRequest('/metrics/audit-log/actions');
+          document.getElementById('f-action').insertAdjacentHTML('beforeend',
+            actions.map(a => `<option value="${escapeHtml(a)}">${escapeHtml(a.replace(/_/g, ' '))}</option>`).join(''));
+        } catch {
+          // The filter is optional; the log still works without it
+        }
+      }
+
+      let searchTimer;
+      document.getElementById('f-search').addEventListener('input', () => {
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(() => load(true), 300);
+      });
+      document.getElementById('f-actor').addEventListener('change', () => load(true));
+      document.getElementById('f-action').addEventListener('change', () => load(true));
+      loadMoreBtn.addEventListener('click', () => load(false));
+
+      loadActions();
+      load(true);
+    }
+  </script>
+</body>
+</html>

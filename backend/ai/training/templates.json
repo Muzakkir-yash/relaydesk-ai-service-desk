@@ -1,0 +1,785 @@
+{
+  "_about": "Sentence templates. Each pattern is expanded with every combination of its {slots}, then sampled down to `limit` sentences per group, and added to the training data. Add slot values (new apps, devices, teams) to teach the model new vocabulary.",
+  "intents": {
+    "security": [
+      {
+        "limit": 45,
+        "patterns": [
+          "my {device} was stolen {where}",
+          "i lost my {device} {where}",
+          "someone took my {device} {where}",
+          "{device} missing, i think i left it {where}",
+          "my bag with my {device} was taken {where}"
+        ],
+        "slots": {
+          "device": [
+            "work laptop",
+            "company laptop",
+            "laptop",
+            "work phone",
+            "company phone",
+            "tablet",
+            "security key",
+            "badge"
+          ],
+          "where": [
+            "on the train",
+            "at the airport",
+            "from my car",
+            "in a taxi",
+            "at a cafe",
+            "on the bus",
+            "at the hotel",
+            "today",
+            "last night"
+          ]
+        }
+      },
+      {
+        "limit": 45,
+        "patterns": [
+          "{sender} {channel} asking me to {ask}",
+          "got a {channel} from {sender} asking me to {ask}",
+          "{channel} from {sender} wants me to {ask}, is it legit"
+        ],
+        "slots": {
+          "sender": [
+            "someone claiming to be the ceo",
+            "a person pretending to be our director",
+            "someone saying they are from it",
+            "a fake supplier",
+            "an unknown sender",
+            "someone posing as my manager",
+            "a so called microsoft support agent"
+          ],
+          "channel": [
+            "an email",
+            "a text",
+            "a whatsapp message",
+            "a phone call",
+            "a teams message"
+          ],
+          "ask": [
+            "buy gift cards",
+            "send my password",
+            "share my mfa code",
+            "pay an urgent invoice",
+            "transfer money",
+            "confirm my login",
+            "install remote access software",
+            "update my bank details"
+          ]
+        }
+      },
+      {
+        "limit": 30,
+        "patterns": [
+          "{alert} {about}",
+          "i got {alert} {about}"
+        ],
+        "slots": {
+          "alert": [
+            "an alert",
+            "a warning email",
+            "a notification",
+            "a security alert",
+            "an email from microsoft"
+          ],
+          "about": [
+            "about a sign in from another country",
+            "that my password was used somewhere else",
+            "about an unknown device logging in",
+            "that someone tried to access my account",
+            "about unusual activity on my account",
+            "saying my mailbox rules were changed"
+          ]
+        }
+      }
+    ],
+    "outage": [
+      {
+        "limit": 70,
+        "patterns": [
+          "{who} {cant} {action}",
+          "{who} {cant} {action} since {when}",
+          "{action_ing} is down for {who_obj}"
+        ],
+        "slots": {
+          "who": [
+            "nobody in finance",
+            "none of us in sales",
+            "the whole hr team",
+            "all of us in accounts",
+            "everyone in the office",
+            "everyone on the second floor",
+            "the entire marketing team",
+            "all staff at the warehouse",
+            "my whole team",
+            "everyone at the branch",
+            "half the office",
+            "all the managers"
+          ],
+          "cant": [
+            "can't",
+            "cannot",
+            "are unable to",
+            "can no longer"
+          ],
+          "action": [
+            "get emails",
+            "log in",
+            "open the shared drive",
+            "print",
+            "connect to the wifi",
+            "use teams",
+            "reach the crm",
+            "access the payroll system",
+            "make calls",
+            "join the vpn"
+          ],
+          "when": [
+            "this morning",
+            "lunch",
+            "9am",
+            "an hour ago",
+            "the update"
+          ],
+          "action_ing": [
+            "email",
+            "the network",
+            "the shared drive",
+            "printing",
+            "teams",
+            "the crm",
+            "the phone system",
+            "the vpn"
+          ],
+          "who_obj": [
+            "everyone",
+            "the whole office",
+            "our entire department",
+            "all of us",
+            "the whole building",
+            "every user"
+          ]
+        }
+      },
+      {
+        "limit": 60,
+        "patterns": [
+          "every {device} in the {place} {broken}",
+          "all the {device}s on the {place} {broken}",
+          "none of the {device}s in the {place} work",
+          "the {device}s across the {place} {broken}"
+        ],
+        "slots": {
+          "device": [
+            "desk phone",
+            "phone",
+            "printer",
+            "meeting room screen",
+            "handheld scanner",
+            "docking station",
+            "card reader",
+            "till",
+            "access point",
+            "wall display",
+            "pc",
+            "camera"
+          ],
+          "place": [
+            "building",
+            "office",
+            "warehouse",
+            "branch",
+            "second floor",
+            "site",
+            "factory",
+            "call centre",
+            "shop"
+          ],
+          "broken": [
+            "is dead",
+            "has gone dead",
+            "stopped working",
+            "is offline",
+            "went down",
+            "is not working",
+            "lost power",
+            "can't connect"
+          ]
+        }
+      }
+    ],
+    "request": [
+      {
+        "limit": 90,
+        "patterns": [
+          "{please} {install} {app} {on}",
+          "{please} {install} {app}"
+        ],
+        "slots": {
+          "please": [
+            "could you",
+            "can i get",
+            "please",
+            "i need you to",
+            "would it be possible to",
+            "i'd like to",
+            "any chance of getting",
+            "any chance i could get",
+            "is it possible to get",
+            "is there any way to get",
+            "could i please have",
+            "would it be possible to have",
+            "can i request",
+            "how can i get"
+          ],
+          "install": [
+            "install",
+            "put",
+            "set up",
+            "add",
+            "get"
+          ],
+          "app": [
+            "visio",
+            "photoshop",
+            "adobe acrobat pro",
+            "tableau",
+            "power bi",
+            "autocad",
+            "python",
+            "slack",
+            "a pdf editor",
+            "sql server management studio",
+            "notepad++",
+            "vs code",
+            "7-zip",
+            "zoom",
+            "teams",
+            "chrome",
+            "firefox",
+            "spss",
+            "tableau desktop",
+            "microsoft project",
+            "a vpn client",
+            "jira",
+            "figma",
+            "matlab"
+          ],
+          "on": [
+            "on my laptop",
+            "on my machine",
+            "for me",
+            "on my pc",
+            "on my computer",
+            "installed",
+            "added to my laptop",
+            "on my work computer"
+          ]
+        }
+      },
+      {
+        "limit": 45,
+        "patterns": [
+          "{need} access to {resource}",
+          "{need} to be added to {resource}",
+          "{need} permissions for {resource}"
+        ],
+        "slots": {
+          "need": [
+            "i need",
+            "i'd like",
+            "can i have",
+            "please give me",
+            "requesting",
+            "my new role needs"
+          ],
+          "resource": [
+            "the legal folder",
+            "the finance share",
+            "the hr sharepoint site",
+            "the sales crm",
+            "the marketing team in teams",
+            "the project drive",
+            "the payroll system",
+            "the engineering wiki",
+            "the board mailbox",
+            "the procurement portal"
+          ]
+        }
+      },
+      {
+        "limit": 45,
+        "patterns": [
+          "{device} {damage}",
+          "my {device} {damage}",
+          "the {device} {damage} after {accident}"
+        ],
+        "slots": {
+          "device": [
+            "laptop",
+            "work phone",
+            "monitor",
+            "tablet",
+            "keyboard",
+            "laptop screen",
+            "phone screen"
+          ],
+          "damage": [
+            "is cracked",
+            "is shattered",
+            "got smashed",
+            "has a broken hinge",
+            "got wet and died",
+            "is physically broken",
+            "won't start after a fall"
+          ],
+          "accident": [
+            "i dropped it",
+            "it fell off the desk",
+            "i spilled a drink on it",
+            "someone sat on it",
+            "it slipped out of my bag"
+          ]
+        }
+      },
+      {
+        "limit": 30,
+        "patterns": [
+          "{who} {starts} and {needs}"
+        ],
+        "slots": {
+          "who": [
+            "a new starter",
+            "our new hire",
+            "an intern",
+            "a contractor",
+            "a new team member",
+            "a temp"
+          ],
+          "starts": [
+            "starts next week",
+            "joins on monday",
+            "is starting tomorrow",
+            "arrives on the 1st"
+          ],
+          "needs": [
+            "needs a laptop",
+            "needs an email account",
+            "needs accounts set up",
+            "needs a phone and laptop",
+            "needs access to our systems"
+          ]
+        }
+      }
+    ],
+    "human": [
+      {
+        "limit": 40,
+        "patterns": [
+          "{could} {someone} {contact} {about}",
+          "{could} {someone} {contact}"
+        ],
+        "slots": {
+          "could": [
+            "could",
+            "can",
+            "would",
+            "please can",
+            "is it possible for"
+          ],
+          "someone": [
+            "someone",
+            "somebody",
+            "a technician",
+            "someone from it",
+            "a person",
+            "an engineer"
+          ],
+          "contact": [
+            "call me",
+            "ring me",
+            "phone me",
+            "come to my desk",
+            "remote into my pc",
+            "get in touch",
+            "message me on teams"
+          ],
+          "about": [
+            "about this",
+            "today",
+            "when free",
+            "asap",
+            "about my issue"
+          ]
+        }
+      }
+    ],
+    "resolved": [
+      {
+        "limit": 40,
+        "patterns": [
+          "{action} {worked}",
+          "ok {action} {worked}",
+          "{action} {worked}, thanks"
+        ],
+        "slots": {
+          "action": [
+            "restarting",
+            "the reboot",
+            "updating it",
+            "reinstalling",
+            "clearing the cache",
+            "signing out and in",
+            "re-pairing it",
+            "the reset",
+            "your steps",
+            "unplugging the dock"
+          ],
+          "worked": [
+            "worked",
+            "fixed it",
+            "did the trick",
+            "sorted it",
+            "solved it",
+            "got it working again",
+            "made it work"
+          ]
+        }
+      }
+    ],
+    "not_fixed": [
+      {
+        "limit": 35,
+        "patterns": [
+          "{neg} {state}",
+          "{tried} but {state}",
+          "{tried}, {neg}"
+        ],
+        "slots": {
+          "neg": [
+            "no",
+            "nope",
+            "nah",
+            "unfortunately not",
+            "no luck"
+          ],
+          "state": [
+            "still the same",
+            "same error",
+            "still not working",
+            "it's still broken",
+            "no change",
+            "still happening",
+            "still stuck"
+          ],
+          "tried": [
+            "i restarted",
+            "i tried that",
+            "did all the steps",
+            "i reinstalled it",
+            "i cleared the cache",
+            "rebooted twice"
+          ]
+        }
+      }
+    ],
+    "problem": [
+      {
+        "limit": 110,
+        "patterns": [
+          "my {thing} {symptom}",
+          "{thing} {symptom}",
+          "the {thing} {symptom} since {when}"
+        ],
+        "slots": {
+          "thing": [
+            "vpn",
+            "wifi",
+            "outlook",
+            "teams",
+            "excel",
+            "laptop",
+            "printer",
+            "monitor",
+            "headset",
+            "keyboard",
+            "mouse",
+            "onedrive",
+            "sharepoint",
+            "browser",
+            "webcam",
+            "docking station",
+            "zoom",
+            "word",
+            "phone",
+            "mapped drive",
+            "calendar",
+            "remote desktop",
+            "scanner",
+            "speakers",
+            "battery"
+          ],
+          "symptom": [
+            "keeps crashing",
+            "won't open",
+            "isn't working",
+            "keeps disconnecting",
+            "is really slow",
+            "stopped working",
+            "shows an error",
+            "won't connect",
+            "freezes",
+            "isn't syncing",
+            "isn't detected",
+            "keeps logging me out",
+            "is down",
+            "went down",
+            "is down for me",
+            "keeps going down"
+          ],
+          "when": [
+            "this morning",
+            "yesterday",
+            "the update",
+            "last week",
+            "i got back from leave"
+          ]
+        }
+      }
+    ]
+  },
+  "categories": {
+    "network": [
+      {
+        "limit": 50,
+        "patterns": [
+          "{thing} {symptom}",
+          "my {thing} {symptom}"
+        ],
+        "slots": {
+          "thing": [
+            "vpn",
+            "wifi",
+            "wi-fi",
+            "internet",
+            "network",
+            "ethernet",
+            "remote desktop",
+            "citrix",
+            "anyconnect",
+            "globalprotect",
+            "connection"
+          ],
+          "symptom": [
+            "keeps dropping",
+            "won't connect",
+            "is slow",
+            "times out",
+            "keeps disconnecting",
+            "isn't working",
+            "is down",
+            "has no signal"
+          ]
+        }
+      }
+    ],
+    "access": [
+      {
+        "limit": 50,
+        "patterns": [
+          "{thing} {symptom}",
+          "my {thing} {symptom}",
+          "{need} access to {resource}"
+        ],
+        "slots": {
+          "thing": [
+            "password",
+            "account",
+            "login",
+            "mfa",
+            "authenticator",
+            "sign in",
+            "sso",
+            "two factor code",
+            "credentials"
+          ],
+          "symptom": [
+            "isn't working",
+            "is locked",
+            "expired",
+            "is rejected",
+            "keeps failing",
+            "won't reset",
+            "isn't accepted"
+          ],
+          "need": [
+            "i need",
+            "please give me",
+            "can i get",
+            "requesting"
+          ],
+          "resource": [
+            "the legal folder",
+            "the finance share",
+            "the hr site",
+            "the crm",
+            "the project drive",
+            "the payroll system",
+            "a shared mailbox"
+          ]
+        }
+      },
+      {
+        "limit": 40,
+        "patterns": [
+          "{system} says {msg}",
+          "can't get into {system}, {msg}"
+        ],
+        "slots": {
+          "system": [
+            "windows",
+            "remote desktop",
+            "the vpn",
+            "outlook",
+            "sharepoint",
+            "the hr portal",
+            "the crm",
+            "my laptop",
+            "citrix",
+            "teams"
+          ],
+          "msg": [
+            "my password is wrong",
+            "account not authorised",
+            "access denied",
+            "my account is disabled",
+            "credentials invalid",
+            "you don't have permission",
+            "password expired",
+            "sign in blocked"
+          ]
+        }
+      }
+    ],
+    "hardware": [
+      {
+        "limit": 50,
+        "patterns": [
+          "{thing} {symptom}",
+          "my {thing} {symptom}"
+        ],
+        "slots": {
+          "thing": [
+            "laptop",
+            "monitor",
+            "keyboard",
+            "mouse",
+            "printer",
+            "headset",
+            "webcam",
+            "speakers",
+            "docking station",
+            "charger",
+            "battery",
+            "phone",
+            "screen",
+            "scanner",
+            "touchpad"
+          ],
+          "symptom": [
+            "is broken",
+            "is cracked",
+            "won't turn on",
+            "isn't detected",
+            "makes a noise",
+            "stopped working",
+            "is overheating",
+            "won't charge",
+            "is physically damaged",
+            "shows nothing"
+          ]
+        }
+      }
+    ],
+    "software": [
+      {
+        "limit": 70,
+        "patterns": [
+          "{app} {symptom}",
+          "my {app} {symptom}",
+          "{please} install {app}",
+          "{please} put {app} on my computer",
+          "{please} put {app} on my laptop",
+          "can i have {app} on my machine"
+        ],
+        "slots": {
+          "app": [
+            "outlook",
+            "teams",
+            "excel",
+            "word",
+            "zoom",
+            "onedrive",
+            "sharepoint",
+            "chrome",
+            "visio",
+            "photoshop",
+            "adobe acrobat",
+            "power bi",
+            "windows update",
+            "the erp app",
+            "slack"
+          ],
+          "symptom": [
+            "keeps crashing",
+            "won't open",
+            "is slow",
+            "shows an error",
+            "isn't syncing",
+            "freezes",
+            "won't update",
+            "is not responding"
+          ],
+          "please": [
+            "please",
+            "can you",
+            "could i get",
+            "i need you to"
+          ]
+        }
+      },
+      {
+        "limit": 40,
+        "patterns": [
+          "{file} {state}",
+          "my {file} {state}"
+        ],
+        "slots": {
+          "file": [
+            "excel file",
+            "word document",
+            "spreadsheet",
+            "powerpoint",
+            "pdf",
+            "shared workbook",
+            "attachment",
+            "file"
+          ],
+          "state": [
+            "is locked for editing",
+            "opens read only",
+            "is in use by another user",
+            "won't save",
+            "is corrupted",
+            "shows a compatibility error",
+            "won't open",
+            "keeps reverting changes"
+          ]
+        }
+      }
+    ]
+  }
+}

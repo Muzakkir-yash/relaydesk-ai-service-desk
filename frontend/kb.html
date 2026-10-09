@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Knowledge Base — NexusIT Service Desk</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    .kb-card {
+      background: #ffffff;
+      border: 1px solid var(--border-main);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      box-shadow: var(--shadow-sm);
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .kb-card:hover {
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-md);
+      border-color: var(--primary-border);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="app-container">
+    <div class="main-wrapper">
+      <main class="content-body">
+        <div class="container-narrow">
+          
+          <!-- Header Card -->
+          <div class="card" style="padding: 24px; margin-bottom: 24px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;">
+              <div>
+                <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--primary);">Self-Service Library</div>
+                <h1 style="font-size: 22px; font-weight: 800; color: var(--text-main); margin-top: 2px;">Knowledge Base & Solutions</h1>
+                <p style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">Search verified troubleshooting procedures, standard fixes, and self-help playbooks.</p>
+              </div>
+              <div id="admin-actions" style="display: none;">
+                <button id="create-article-btn" class="btn btn-primary btn-sm">+ New Article</button>
+              </div>
+            </div>
+
+            <!-- Search & Filter Row -->
+            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border-subtle);">
+              
+              <div class="tab-bar">
+                <button class="tab-btn active" data-cat="all">All Topics</button>
+                <button class="tab-btn" data-cat="network">VPN & Network</button>
+                <button class="tab-btn" data-cat="hardware">Hardware</button>
+                <button class="tab-btn" data-cat="software">Software</button>
+                <button class="tab-btn" data-cat="access">Access & Passwords</button>
+              </div>
+
+              <div style="position: relative; display: flex; align-items: center;">
+                <input type="text" id="kb-search" class="form-input" placeholder="Search knowledge base..." style="width: 260px; padding: 7px 28px 7px 12px; font-size: 12.5px;" />
+                <span id="clear-kb-btn" style="position: absolute; right: 8px; cursor: pointer; color: var(--text-subtle); display: none; font-size: 12px;">✕</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Articles Grid -->
+          <div id="articles-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 18px;">
+            <div style="grid-column: 1 / -1; text-align: center; padding: 48px; color: var(--text-muted);">Loading verified solutions...</div>
+          </div>
+
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- Article View Modal -->
+  <div class="modal-overlay" id="article-modal">
+    <div class="modal-card" style="max-width: 680px;">
+      <div class="modal-header">
+        <div>
+          <span class="category-pill" id="art-cat" style="font-size: 11px;">Category</span>
+          <h3 style="font-size: 18px; font-weight: 800; color: var(--text-main); margin-top: 6px;" id="art-title">Article Title</h3>
+        </div>
+        <button class="btn btn-ghost btn-sm close-art-btn" style="font-size: 14px;">✕</button>
+      </div>
+      <div class="modal-body">
+        <div style="font-size: 14px; color: var(--text-body); line-height: 1.7; white-space: pre-wrap; font-family: var(--font-sans);" id="art-content">...</div>
+
+        <!-- Helpfulness Feedback Widget -->
+        <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border-subtle); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+          <span style="font-size: 12.5px; font-weight: 600; color: var(--text-muted);">Was this article helpful?</span>
+          <div style="display: flex; gap: 8px;">
+            <button class="btn btn-secondary btn-sm feedback-btn" data-vote="yes">👍 Yes, solved it</button>
+            <button class="btn btn-secondary btn-sm feedback-btn" data-vote="no">👎 Still need help</button>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer" style="display: flex; justify-content: space-between; gap: 8px;">
+        <div style="display: flex; gap: 8px;">
+          <button class="btn btn-secondary btn-sm" id="edit-art-btn" style="display: none;">✏️ Edit</button>
+          <button class="btn btn-ghost btn-sm" id="delete-art-btn" style="display: none; color: #dc2626;">Delete</button>
+        </div>
+        <button class="btn btn-primary btn-sm close-art-btn">Done Reading</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Create Article Modal -->
+  <div class="modal-overlay" id="create-article-modal">
+    <div class="modal-card" style="max-width: 640px;">
+      <div class="modal-header">
+        <h3 style="font-size: 17px; font-weight: 800; color: var(--text-main);" id="art-form-title">Add Knowledge Base Article</h3>
+        <button class="btn btn-ghost btn-sm close-create-art-btn" style="font-size: 14px;">✕</button>
+      </div>
+      <form id="create-article-form">
+        <div class="modal-body">
+          <div class="form-group" style="margin-bottom: 14px;">
+            <label class="form-label" style="font-weight: 700; font-size: 13px; color: var(--text-main); margin-bottom: 4px; display: block;">Article Title</label>
+            <input type="text" id="new-art-title" class="form-input" placeholder="e.g. Cisco AnyConnect VPN Setup & Troubleshooting" required />
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px;">
+            <div>
+              <label class="form-label" style="font-weight: 700; font-size: 13px; color: var(--text-main); margin-bottom: 4px; display: block;">Category</label>
+              <select id="new-art-cat" class="form-select">
+                <!-- Values must match the categories the chatbot uses -->
+                <option value="network">Network & VPN</option>
+                <option value="hardware">Hardware</option>
+                <option value="software">Software</option>
+                <option value="access">Access & Passwords</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+            <div>
+              <label class="form-label" style="font-weight: 700; font-size: 13px; color: var(--text-main); margin-bottom: 4px; display: block;">Search Tags (comma-separated)</label>
+              <input type="text" id="new-art-tags" class="form-input" placeholder="e.g. vpn, cisco, remote" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" style="font-weight: 700; font-size: 13px; color: var(--text-main); margin-bottom: 4px; display: block;">Resolution Procedure / Content</label>
+            <textarea id="new-art-content" class="form-textarea" placeholder="Detail the step-by-step diagnostic and resolution instructions..." rows="6" required></textarea>
+          </div>
+        </div>
+        <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 10px; padding: 14px 20px;">
+          <button type="button" class="btn btn-secondary btn-sm close-create-art-btn">Cancel</button>
+          <button type="submit" id="save-art-btn" class="btn btn-primary btn-sm">Save & Publish</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script type="module">
+    import { requireAuth } from './js/auth.js';
+    import { renderLayout, showToast } from './js/app.js';
+    import { apiRequest } from './js/api.js';
+    import { escapeHtml } from './js/utils.js';
+
+    const user = requireAuth();
+    if (user) {
+      renderLayout('Knowledge Base', '/kb.html');
+
+      if (user.role === 'admin' || user.role === 'technician') {
+        document.getElementById('admin-actions').style.display = 'block';
+      }
+
+      let allArticles = [];
+      let currentCat = 'all';
+      let searchQuery = '';
+
+      async function loadArticles() {
+        try {
+          const articles = await apiRequest('/kb');
+          allArticles = articles;
+          renderArticles();
+        } catch (err) {
+          showToast('Failed to load KB: ' + err.message, 'error');
+        }
+      }
+
+      function renderArticles() {
+        const grid = document.getElementById('articles-grid');
+        let filtered = allArticles.filter(a => {
+          if (currentCat !== 'all' && (a.category || '').toLowerCase() !== currentCat.toLowerCase()) return false;
+          if (searchQuery) {
+            const q = searchQuery.toLowerCase();
+            return (a.title && a.title.toLowerCase().includes(q)) ||
+                   (a.body && a.body.toLowerCase().includes(q)) ||
+                   (a.tags && a.tags.toLowerCase().includes(q));
+          }
+          return true;
+        });
+
+        if (filtered.length === 0) {
+          grid.innerHTML = `
+            <div style="grid-column: 1 / -1; text-align: center; padding: 48px; color: var(--text-muted);">
+              <div style="font-size: 36px; margin-bottom: 8px;">🔍</div>
+              <div style="font-weight: 700; color: var(--text-main); font-size: 15px;">No matching solutions found</div>
+              <div style="font-size: 12.5px; margin-top: 4px;">Try searching with different keywords or browse all categories.</div>
+            </div>
+          `;
+          return;
+        }
+
+        // Drafts the AI learned from resolved tickets come first, so staff review them
+        filtered.sort((x, y) => (y.status === 'pending_approval') - (x.status === 'pending_approval'));
+
+        grid.innerHTML = filtered.map(a => {
+          const isDraft = a.status === 'pending_approval';
+          const fixes = a.helpful_count || 0;
+          const misses = a.not_helpful_count || 0;
+          const draftBar = isDraft ? `
+            <div style="background: #f5f3ff; border: 1px solid #ddd6fe; border-radius: var(--radius-md); padding: 8px 10px; margin-bottom: 10px; font-size: 11.5px; color: #5b21b6;">
+              🧠 <strong>Learned by the AI</strong> from ticket #${escapeHtml(a.source_ticket_id)} — not visible to the chatbot until approved
+              <div style="display: flex; gap: 6px; margin-top: 8px;">
+                <button class="btn btn-primary btn-sm" data-approve="${a.id}">Approve & publish</button>
+                ${user.role === 'admin' ? `<button class="btn btn-secondary btn-sm" data-discard="${a.id}">Discard</button>` : ''}
+              </div>
+            </div>` : '';
+          const stats = fixes + misses > 0
+            ? `✅ fixed ${fixes} of ${fixes + misses} chats`
+            : (a.source === 'ai_drafted' ? '🧠 learned from a ticket' : '');
+          return `
+          <div class="kb-card" onclick="openArticle(${a.id})" ${isDraft ? 'style="border-color: #c4b5fd;"' : ''}>
+            ${draftBar}
+            <div>
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+                <span class="category-pill">${escapeHtml((a.category || 'general').charAt(0).toUpperCase() + (a.category || 'general').slice(1))}</span>
+                <span style="font-size: 11.5px; color: var(--text-subtle);">📖 ${Math.max(1, Math.round((a.body || '').split(/\s+/).length / 200))} min read</span>
+              </div>
+              <h3 style="font-size: 15px; font-weight: 700; color: var(--text-main); line-height: 1.35; margin-bottom: 8px;">
+                ${escapeHtml(a.title)}
+              </h3>
+              <p style="font-size: 12.5px; color: var(--text-muted); line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;">
+                ${escapeHtml(a.body)}
+              </p>
+            </div>
+            <div style="margin-top: 14px; padding-top: 10px; border-top: 1px solid var(--border-subtle); display: flex; align-items: center; justify-content: space-between;">
+              <span style="font-size: 11.5px; font-weight: 600; color: var(--primary);">Read Guide →</span>
+              <span style="font-size: 11.5px; color: var(--text-subtle);">${stats}</span>
+            </div>
+          </div>
+        `;
+        }).join('');
+
+        grid.querySelectorAll('[data-approve]').forEach(btn => btn.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          try {
+            await apiRequest(`/kb/${btn.dataset.approve}`, { method: 'PATCH', body: { status: 'published' } });
+            showToast('Published — the chatbot can now use this fix.', 'success');
+            loadArticles();
+          } catch (err) {
+            showToast('Approve failed: ' + err.message, 'error');
+          }
+        }));
+        grid.querySelectorAll('[data-discard]').forEach(btn => btn.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          if (!confirm('Discard this AI-drafted article?')) return;
+          try {
+            await apiRequest(`/kb/${btn.dataset.discard}`, { method: 'DELETE' });
+            showToast('Draft discarded.', 'success');
+            loadArticles();
+          } catch (err) {
+            showToast('Discard failed: ' + err.message, 'error');
+          }
+        }));
+      }
+
+
+      const isStaff = user.role === 'admin' || user.role === 'technician';
+      let currentArticleId = null;  // article open in the reading modal
+      let editingId = null;         // article being edited (null = creating)
+
+      window.openArticle = (id) => {
+        const art = allArticles.find(a => a.id === id);
+        if (!art) return;
+        currentArticleId = id;
+        document.getElementById('art-title').textContent = art.title;
+        document.getElementById('art-cat').textContent = art.category || 'General';
+        document.getElementById('art-content').textContent = art.body || 'No content provided.';
+        document.getElementById('edit-art-btn').style.display = isStaff ? 'inline-flex' : 'none';
+        document.getElementById('delete-art-btn').style.display = user.role === 'admin' ? 'inline-flex' : 'none';
+        document.getElementById('article-modal').classList.add('open');
+      };
+
+      document.querySelectorAll('.close-art-btn').forEach(b => {
+        b.addEventListener('click', () => document.getElementById('article-modal').classList.remove('open'));
+      });
+
+      function openArticleForm(art) {
+        editingId = art ? art.id : null;
+        document.getElementById('art-form-title').textContent = art ? 'Edit Knowledge Base Article' : 'Add Knowledge Base Article';
+        document.getElementById('save-art-btn').textContent = art ? 'Save Changes' : 'Save & Publish';
+        document.getElementById('new-art-title').value = art ? art.title : '';
+        document.getElementById('new-art-cat').value = art ? (art.category || 'other').toLowerCase() : 'network';
+        document.getElementById('new-art-tags').value = art ? (art.tags || '') : '';
+        document.getElementById('new-art-content').value = art ? art.body : '';
+        document.getElementById('create-article-modal').classList.add('open');
+      }
+
+      document.getElementById('edit-art-btn').addEventListener('click', () => {
+        const art = allArticles.find(a => a.id === currentArticleId);
+        if (!art) return;
+        document.getElementById('article-modal').classList.remove('open');
+        openArticleForm(art);
+      });
+
+      document.getElementById('delete-art-btn').addEventListener('click', async () => {
+        const art = allArticles.find(a => a.id === currentArticleId);
+        if (!art || !confirm(`Delete "${art.title}"? The chatbot will stop using it. This cannot be undone.`)) return;
+        try {
+          await apiRequest(`/kb/${art.id}`, { method: 'DELETE' });
+          showToast('Article deleted.', 'success');
+          document.getElementById('article-modal').classList.remove('open');
+          loadArticles();
+        } catch (err) {
+          showToast('Delete failed: ' + err.message, 'error');
+        }
+      });
+
+      // Create Article Modal Handlers
+      document.getElementById('create-article-btn')?.addEventListener('click', () => openArticleForm(null));
+
+      document.querySelectorAll('.close-create-art-btn').forEach(b => {
+        b.addEventListener('click', () => document.getElementById('create-article-modal').classList.remove('open'));
+      });
+
+      document.getElementById('create-article-form')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const submitBtn = document.getElementById('save-art-btn');
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Publishing...';
+
+        const title = document.getElementById('new-art-title').value.trim();
+        const category = document.getElementById('new-art-cat').value;
+        const tags = document.getElementById('new-art-tags').value.trim();
+        const body = document.getElementById('new-art-content').value.trim();
+
+        try {
+          if (editingId) {
+            await apiRequest(`/kb/${editingId}`, { method: 'PATCH', body: { title, body, category, tags: tags || null } });
+            showToast('Article updated — the chatbot uses the new version right away.', 'success');
+          } else {
+            await apiRequest('/kb', { method: 'POST', body: { title, body, category, tags: tags || null } });
+            showToast('Knowledge Base article created!', 'success');
+          }
+          document.getElementById('create-article-modal').classList.remove('open');
+          document.getElementById('create-article-form').reset();
+          loadArticles();
+        } catch (err) {
+          showToast('Failed to save article: ' + err.message, 'error');
+        } finally {
+          submitBtn.disabled = false;
+          submitBtn.textContent = editingId ? 'Save Changes' : 'Save & Publish';
+        }
+      });
+
+      // "Was this helpful?" votes feed the chatbot's ranking of this article
+      document.querySelectorAll('.feedback-btn').forEach(b => {
+        b.addEventListener('click', async () => {
+          if (!currentArticleId) return;
+          try {
+            await apiRequest(`/kb/${currentArticleId}/feedback`, {
+              method: 'POST',
+              body: { helpful: b.dataset.vote === 'yes' }
+            });
+            showToast('Thanks — your feedback helps the assistant suggest better fixes.', 'success');
+          } catch (err) {
+            showToast('Could not save feedback: ' + err.message, 'error');
+          }
+        });
+      });
+
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          currentCat = btn.getAttribute('data-cat');
+          renderArticles();
+        });
+      });
+
+      const kbSearch = document.getElementById('kb-search');
+      const clearKb = document.getElementById('clear-kb-btn');
+
+      kbSearch?.addEventListener('input', (e) => {
+        searchQuery = e.target.value;
+        if (clearKb) clearKb.style.display = searchQuery ? 'inline' : 'none';
+        renderArticles();
+      });
+
+      clearKb?.addEventListener('click', () => {
+        if (kbSearch) kbSearch.value = '';
+        searchQuery = '';
+        clearKb.style.display = 'none';
+        renderArticles();
+      });
+
+      loadArticles();
+    }
+  </script>
+</body>
+</html>
