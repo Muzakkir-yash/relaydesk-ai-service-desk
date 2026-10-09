@@ -196,11 +196,6 @@ alembic check                                     # fails if models.py and the D
 
 ---
 
-## Cost: strictly free
-
-This project uses **no paid services** and no free-trial services that later charge. Everything runs locally on open-source software. The only paid integration in the code — the Claude API — is **switched off** by `ENABLE_PAID_AI=false` (the default): while it is off, no request is ever sent, even if an API key is filled in. `tests/test_no_paid_services.py` fails the build if that guarantee is ever broken.
-
----
 
 ## Security Notes
 
