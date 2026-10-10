@@ -18,6 +18,7 @@ from sqlalchemy.orm import Session
 from database import get_db
 from auth import require_role, hash_password
 from audit import write_audit
+from demo import guard_demo_account
 import models, schemas
 
 router = APIRouter(prefix="/users", tags=["users"])
@@ -88,6 +89,7 @@ def update_user(
 ):
     """Update a user's role, team, or support level — admin only."""
     user = _get_user_or_404(user_id, db)
+    guard_demo_account(user)
 
     update_data = payload.model_dump(exclude_none=True)
     if user.id == current_user.id and update_data.get("role", "admin") != "admin":
@@ -113,6 +115,7 @@ def delete_user(
     user = _get_user_or_404(user_id, db)
     if user.id == current_user.id:
         raise HTTPException(status_code=400, detail="Cannot delete your own account")
+    guard_demo_account(user)
     has_tickets = db.query(models.Ticket.id).filter(
         or_(models.Ticket.user_id == user_id, models.Ticket.assigned_to == user_id)
     ).first()
@@ -142,6 +145,7 @@ def create_reset_link(
     """One-time password reset link for the admin to give to the user.
     Valid for 24 hours; issuing a new link cancels any older unused ones."""
     user = _get_user_or_404(user_id, db)
+    guard_demo_account(user)
     now = datetime.utcnow()
     db.query(models.PasswordResetToken).filter(
         models.PasswordResetToken.user_id == user.id, models.PasswordResetToken.used_at.is_(None)

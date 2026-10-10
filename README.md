@@ -14,8 +14,8 @@
   <img src="https://img.shields.io/badge/FastAPI-0.110+-009688?style=for-the-badge&logo=fastapi&logoColor=white" />
   <img src="https://img.shields.io/badge/Frontend-Vanilla%20JS-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black" />
   <img src="https://img.shields.io/badge/Database-SQLite%20%2F%20MySQL-4479A1?style=for-the-badge&logo=mysql&logoColor=white" />
-  <img src="https://img.shields.io/badge/Tests-80%20passing-brightgreen?style=for-the-badge&logo=pytest&logoColor=white" />
-  <img src="https://img.shields.io/badge/Deploy-Railway%20%2F%20Render-6C63FF?style=for-the-badge" />
+  <a href="https://github.com/Muzakkir-yash/relaydesk-ai-service-desk/actions/workflows/tests.yml"><img src="https://github.com/Muzakkir-yash/relaydesk-ai-service-desk/actions/workflows/tests.yml/badge.svg" alt="Tests" height="28" /></a>
+  <img src="https://img.shields.io/badge/Deploy-Render%20(free)-6C63FF?style=for-the-badge" />
 </p>
 
 ---
@@ -117,6 +117,8 @@ RelayDesk is a full-stack AI-powered IT service desk built with **FastAPI** and 
 - Chat-style ticket thread with live polling
 - Star rating (1–5) after resolution
 - My Tickets list with real-time status badges
+- 🔔 Notifications when IT replies or a ticket is resolved
+- "Forgot password?" request and self-service password change
 
 ### Technician Dashboard
 - Priority-sorted queue with live SLA countdown timers
@@ -129,6 +131,8 @@ RelayDesk is a full-stack AI-powered IT service desk built with **FastAPI** and 
   - Similar resolved tickets for reference
 - User Mood indicator (calm / neutral / frustrated)
 - Auto-assignment by problem weight and support tier (L1 / L2 / L3)
+- 🔔 Notifications when a ticket is escalated or assigned to you, or the user replies
+- Broadcast a Major Incident banner to everyone, and mark it resolved when fixed
 
 ### Admin Panel
 - **Knowledge Base CRUD** — full-text search, article approval workflow
@@ -136,6 +140,7 @@ RelayDesk is a full-stack AI-powered IT service desk built with **FastAPI** and 
 - **User Management** — create, edit (name, role, tier, team), and delete users
 - **AI Draft Approval** — approve or reject articles the AI learned from technician resolutions
 - **Audit Log** — searchable, filterable, paginated history of every sign-in, ticket change, and admin action
+- **Password resets** — one-time 24-hour reset links for users who asked (no email service needed)
 
 ---
 
@@ -204,6 +209,8 @@ Copy `backend/.env.example` to `backend/.env` and configure:
 | `CORS_ORIGINS` | Production | Comma-separated allowed origins |
 | `ENABLE_PAID_AI` | Optional | `false` by default. Set `true` plus `ANTHROPIC_API_KEY` to enable Claude |
 | `ANTHROPIC_API_KEY` | Optional | Only required if `ENABLE_PAID_AI=true` |
+| `DEMO_MODE` | Optional | `true` on a public demo: the shared `@company.com` demo accounts can't be changed or deleted, and the login page shows one-click demo accounts |
+| `SEED_DEMO_DATA` | Optional | `true` to load the demo data automatically whenever the database is empty |
 
 ---
 
@@ -216,6 +223,9 @@ POST   /auth/register          Register (rate-limited per IP, creates end user)
 POST   /auth/login             Login -> sets httpOnly session cookie
 POST   /auth/logout            Clear session cookie
 GET    /auth/me                Current user info
+POST   /auth/forgot-password   Ask IT for a reset link (same reply whether or not the account exists)
+POST   /auth/reset-password    Set a new password with a one-time link (signs out all sessions)
+POST   /auth/change-password   Change your own password
 ```
 
 ### Tickets
@@ -251,6 +261,10 @@ GET    /metrics/audit-log/actions      Available audit action types (admin)
 GET    /users                          List users (admin)
 PATCH  /users/{id}                     Edit user (admin)
 DELETE /users/{id}                     Delete user (admin — refused if ticket history exists)
+POST   /users/{id}/reset-link          One-time 24-hour password reset link (admin)
+GET    /notifications                  Your notifications + unread count
+POST   /notifications/{id}/read        Mark one as read
+POST   /notifications/read-all         Mark all as read
 GET    /health                         Health check
 ```
 
@@ -365,18 +379,26 @@ alembic check                                      # verify models.py matches th
 
 ## Deployment
 
-### Railway / Render (Recommended)
+### Free public demo on Render
 
-1. Connect your GitHub repository
-2. Set environment variables (see [Environment Variables](#environment-variables))
-3. The `Procfile` handles the start command automatically:
+The repo includes a [`render.yaml`](render.yaml) Blueprint that uses only Render's **free** plan.
+
+1. Sign up at [render.com](https://render.com) with your GitHub account.
+2. **New → Blueprint** → choose this repository → **Apply**.
+3. Wait for the first build (a few minutes). Your demo is live at `https://relaydesk-demo.onrender.com` (or the name Render assigns).
+
+What to expect on the free plan:
+- It **sleeps after 15 minutes without visitors**; the next visit wakes it in about a minute.
+- There is **no permanent disk**, so the SQLite database is wiped on every restart. `SEED_DEMO_DATA=true` reloads the demo data, so every visitor gets a clean demo, and `DEMO_MODE=true` protects the shared demo logins.
+- For a permanent installation with real data, use a server with a persistent disk or MySQL (below).
+
+### Any other host
+
+`Procfile` start command (migrations run automatically on boot, and the backend serves the frontend — **a single service is all you need**):
 
 ```
 web: cd backend && uvicorn main:app --host 0.0.0.0 --port $PORT --proxy-headers --forwarded-allow-ips="*"
 ```
-
-4. Migrations run automatically on boot — no manual steps needed
-5. The backend serves the frontend — **a single service is all you need**
 
 ### Switch to MySQL (Production)
 

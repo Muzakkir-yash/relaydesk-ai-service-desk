@@ -484,3 +484,23 @@ class AITriageEscalateRequest(BaseModel):
     office_location: Optional[str] = None
     used_article_ids: List[int] = Field(default_factory=list, max_length=20)
 
+
+# ─────────────────────────────────────────────────────────────────
+# Notifications
+# ─────────────────────────────────────────────────────────────────
+class NotificationOut(BaseModel):
+    id: int
+    kind: str
+    message: str
+    link: Optional[str] = None
+    ticket_id: Optional[int] = None
+    read_at: Optional[datetime] = None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class NotificationList(BaseModel):
+    unread: int
+    items: List[NotificationOut]

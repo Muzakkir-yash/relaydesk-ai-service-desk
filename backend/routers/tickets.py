@@ -26,6 +26,7 @@ from ai.briefing import generate_briefing
 from ai.assistant import chat_turn
 from ai.learning import draft_article
 from ai.summary import is_good_title, summarize_description, summarize_title
+from notifications import notify, staff_ids
 
 logger = logging.getLogger("relaydesk.tickets")
 
@@ -209,6 +210,35 @@ async def _create_briefing(db: Session, ticket: models.Ticket, messages: List[di
     return data
 
 
+def _preview(text: str, limit: int = 80) -> str:
+    text = " ".join((text or "").split())
+    return text if len(text) <= limit else text[: limit - 1] + "…"
+
+
+def _notify_escalated(db: Session, ticket: models.Ticket, actor: Optional[models.User]) -> None:
+    if ticket.assigned_to:
+        notify(db, [ticket.assigned_to], "ticket_assigned",
+               f"Ticket #{ticket.id} was escalated to you: {_preview(ticket.subject)}",
+               ticket_id=ticket.id, exclude_user_id=actor.id if actor else None)
+    else:
+        notify(db, staff_ids(db), "ticket_unassigned",
+               f"Ticket #{ticket.id} was escalated but no technician is available: {_preview(ticket.subject)}",
+               ticket_id=ticket.id)
+
+
+def _notify_assignment_change(db: Session, ticket: models.Ticket, previous: Optional[int], actor: models.User) -> None:
+    if ticket.assigned_to and ticket.assigned_to != previous:
+        notify(db, [ticket.assigned_to], "ticket_assigned",
+               f"{actor.name} assigned ticket #{ticket.id} to you: {_preview(ticket.subject)}",
+               ticket_id=ticket.id, exclude_user_id=actor.id)
+
+
+def _notify_resolved(db: Session, ticket: models.Ticket, actor: models.User) -> None:
+    notify(db, [ticket.user_id], "ticket_resolved",
+           f"Your ticket #{ticket.id} was resolved: {_preview(ticket.subject)}. Let us know how it went.",
+           ticket_id=ticket.id, exclude_user_id=actor.id)
+
+
 def _published_articles(db: Session) -> List[Dict[str, Any]]:
     rows = db.query(models.KBArticle).filter(models.KBArticle.status == "published").all()
     return [{
@@ -263,6 +293,9 @@ async def _learn_from_resolution(db: Session, ticket: models.Ticket) -> None:
             output_snapshot=json.dumps(draft),
         ))
         db.commit()
+        notify(db, staff_ids(db), "kb_draft",
+               f"The AI drafted a knowledge-base article from ticket #{ticket.id} — review and approve it",
+               ticket_id=ticket.id, link="/kb.html")
     except Exception:
         db.rollback()
         logger.exception("KB draft from ticket #%s failed", ticket.id)
@@ -603,6 +636,7 @@ async def ai_triage_escalate(
 
     write_audit(db, current_user, "ticket_escalated", "ticket", ticket.id,
                 f"Ticket #{ticket.id} escalated from AI Chatbot to {tech_name}")
+    _notify_escalated(db, ticket, current_user)
 
     return {
         "ticket_id": ticket.id,
@@ -685,6 +719,7 @@ async def update_ticket(
     current_user: models.User = Depends(require_role(*STAFF_ROLES)),
 ):
     ticket = _get_ticket_or_404(ticket_id, db)
+    previous_assignee = ticket.assigned_to
     changes = payload.model_dump(exclude_none=True)
     if payload.status:
         ticket.status = payload.status
@@ -703,7 +738,9 @@ async def update_ticket(
     db.commit()
     db.refresh(ticket)
     write_audit(db, current_user, "ticket_updated", "ticket", ticket_id, f"Ticket #{ticket_id} updated: {changes}")
+    _notify_assignment_change(db, ticket, previous_assignee, current_user)
     if payload.status == "resolved":
+        _notify_resolved(db, ticket, current_user)
         await _learn_from_resolution(db, ticket)
     return ticket
 
@@ -751,6 +788,15 @@ async def add_message(
 
     db.commit()
     db.refresh(msg)
+
+    if sender_type == "technician":
+        notify(db, [ticket.user_id], "reply",
+               f"{current_user.name} replied on ticket #{ticket.id}: {_preview(payload.body)}",
+               ticket_id=ticket.id, exclude_user_id=current_user.id)
+    elif ticket.assigned_to and ticket.status in HUMAN_QUEUE_STATUSES:
+        notify(db, [ticket.assigned_to], "reply",
+               f"{current_user.name} replied on ticket #{ticket.id}: {_preview(payload.body)}",
+               ticket_id=ticket.id, exclude_user_id=current_user.id)
 
     # While the AI still owns the ticket, answer the user's follow-up
     if sender_type == "user" and ticket.status == "ai_handling":
@@ -826,6 +872,7 @@ async def escalate_ticket(
 
     write_audit(db, current_user, "ticket_escalated", "ticket", ticket_id,
                 f"Ticket #{ticket_id} escalated to technician by user {current_user.id}")
+    _notify_escalated(db, ticket, current_user)
 
     db.refresh(ticket)
     return ticket
@@ -847,6 +894,7 @@ async def resolve_ticket(
     db.refresh(ticket)
     write_audit(db, current_user, "ticket_resolved", "ticket", ticket_id,
                 f"Ticket #{ticket_id} resolved by {current_user.name}")
+    _notify_resolved(db, ticket, current_user)
     await _learn_from_resolution(db, ticket)
     db.refresh(ticket)
     return ticket
@@ -879,6 +927,7 @@ async def update_ticket_status_flexible(
     if new_status == "escalated":
         return await escalate_ticket(ticket_id, db, current_user)
 
+    previous_assignee = ticket.assigned_to
     ticket.status = new_status
     if new_status in ("resolved", "closed"):
         ticket.resolved_at = datetime.utcnow()
@@ -888,7 +937,9 @@ async def update_ticket_status_flexible(
     db.commit()
     db.refresh(ticket)
     write_audit(db, current_user, "ticket_status_updated", "ticket", ticket_id, f"Status updated to {new_status}")
+    _notify_assignment_change(db, ticket, previous_assignee, current_user)
     if new_status == "resolved" and _is_staff(current_user):
+        _notify_resolved(db, ticket, current_user)
         await _learn_from_resolution(db, ticket)
         db.refresh(ticket)
     return ticket

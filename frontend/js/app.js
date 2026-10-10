@@ -4,7 +4,7 @@
  */
 import { getUser, logout } from './auth.js';
 import { apiRequest } from './api.js';
-import { escapeHtml } from './utils.js';
+import { escapeHtml, safeUrl } from './utils.js';
 
 export function playAlertChime() {
   try {
@@ -191,6 +191,14 @@ export function renderLayout(pageTitle = 'NexusIT', activeNav = '') {
           <span>${escapeHtml(user?.primary_device?.office_location || user?.office_location || user?.branch || 'Connected')}</span>
         </div>
 
+        <!-- Notifications -->
+        <div style="position: relative;">
+          <button id="notif-bell-btn" class="btn btn-ghost btn-sm" title="Notifications" style="padding: 6px 10px; position: relative;">
+            🔔<span id="notif-badge" style="display: none; position: absolute; top: 0; right: 0; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 8px; background: #dc2626; color: #fff; font-size: 10px; font-weight: 800; line-height: 16px; text-align: center;"></span>
+          </button>
+          <div id="notif-panel" style="display: none; position: absolute; right: 0; top: calc(100% + 6px); width: min(360px, calc(100vw - 32px)); max-height: 420px; overflow-y: auto; background: #fff; border: 1px solid var(--border-main); border-radius: var(--radius-md); box-shadow: var(--shadow-lg, 0 10px 30px rgba(0,0,0,.12)); z-index: 1000;"></div>
+        </div>
+
         <!-- Sound Toggle -->
         <button id="sound-toggle-btn" class="btn btn-ghost btn-sm" title="Toggle audio chime notifications" style="padding: 6px 10px;">
           ${soundEnabled ? '🔔 Sound' : '🔕 Muted'}
@@ -252,6 +260,7 @@ export function renderLayout(pageTitle = 'NexusIT', activeNav = '') {
 
   // Check and display Global Outage Banner
   loadGlobalOutageBanner();
+  initNotifications();
 }
 
 export async function loadGlobalOutageBanner() {
@@ -514,4 +523,95 @@ export function openChangePasswordModal() {
       showToast(err.message, 'error');
     }
   });
+}
+
+
+// ── Notifications (bell) ──────────────────────────────────────────
+const NOTIF_POLL_MS = 30000;
+let lastUnread = null;
+
+function timeAgo(iso) {
+  const then = new Date(iso + (iso.endsWith('Z') ? '' : 'Z'));
+  const mins = Math.round((Date.now() - then.getTime()) / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins} min ago`;
+  const hours = Math.round(mins / 60);
+  if (hours < 24) return `${hours} h ago`;
+  return then.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+}
+
+function renderNotifications(data) {
+  const badge = document.getElementById('notif-badge');
+  const panel = document.getElementById('notif-panel');
+  if (!badge || !panel) return;
+  badge.textContent = data.unread > 99 ? '99+' : String(data.unread);
+  badge.style.display = data.unread > 0 ? 'inline-block' : 'none';
+
+  const canAskDesktop = 'Notification' in window && Notification.permission === 'default';
+  panel.innerHTML = `
+    <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; border-bottom: 1px solid var(--border-subtle);">
+      <strong style="font-size: 13px; color: var(--text-main);">Notifications</strong>
+      ${data.unread > 0 ? '<button id="notif-read-all" class="btn btn-ghost btn-sm" style="font-size: 11.5px; padding: 2px 6px;">Mark all read</button>' : ''}
+    </div>
+    ${data.items.length === 0
+      ? '<div style="padding: 24px; text-align: center; font-size: 12.5px; color: var(--text-muted);">You\'re all caught up.</div>'
+      : data.items.map(n => `
+        <a href="${n.link ? safeUrl(n.link) : '#'}" data-notif-id="${n.id}" style="display: block; padding: 10px 14px; border-bottom: 1px solid var(--border-subtle); text-decoration: none; ${n.read_at ? '' : 'background: #eef2ff;'}">
+          <div style="font-size: 12.5px; color: var(--text-main); line-height: 1.4; ${n.read_at ? '' : 'font-weight: 600;'}">${escapeHtml(n.message)}</div>
+          <div style="font-size: 11px; color: var(--text-muted); margin-top: 3px;">${escapeHtml(timeAgo(n.created_at))}</div>
+        </a>`).join('')}
+    ${canAskDesktop ? '<div style="padding: 8px 14px; text-align: center;"><button id="notif-desktop" class="btn btn-ghost btn-sm" style="font-size: 11.5px;">Turn on desktop alerts</button></div>' : ''}
+  `;
+
+  panel.querySelectorAll('[data-notif-id]').forEach(a => a.addEventListener('click', async (e) => {
+    e.preventDefault();
+    try { await apiRequest(`/notifications/${a.dataset.notifId}/read`, { method: 'POST' }); } catch { /* still navigate */ }
+    const href = a.getAttribute('href');
+    if (href && href !== '#') window.location.href = href; else refreshNotifications();
+  }));
+  document.getElementById('notif-read-all')?.addEventListener('click', async (e) => {
+    e.stopPropagation();
+    await apiRequest('/notifications/read-all', { method: 'POST' }).catch(() => {});
+    refreshNotifications();
+  });
+  document.getElementById('notif-desktop')?.addEventListener('click', async (e) => {
+    e.stopPropagation();
+    await Notification.requestPermission();
+    refreshNotifications();
+  });
+}
+
+async function refreshNotifications() {
+  try {
+    const data = await apiRequest('/notifications?limit=15');
+    // Something new arrived since the last check
+    if (lastUnread !== null && data.unread > lastUnread) {
+      playAlertChime();
+      const newest = data.items.find(n => !n.read_at);
+      if (newest && document.hidden && 'Notification' in window && Notification.permission === 'granted') {
+        new Notification('NexusIT Service Desk', { body: newest.message, icon: '/assets/logo.jpg' });
+      }
+    }
+    lastUnread = data.unread;
+    renderNotifications(data);
+  } catch (err) {
+    console.debug('Notifications unavailable:', err);
+  }
+}
+
+export function initNotifications() {
+  const bell = document.getElementById('notif-bell-btn');
+  const panel = document.getElementById('notif-panel');
+  if (!bell || !panel) return;
+  bell.addEventListener('click', (e) => {
+    e.stopPropagation();
+    panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+  });
+  document.addEventListener('click', (e) => {
+    if (!panel.contains(e.target)) panel.style.display = 'none';
+  });
+  refreshNotifications();
+  setInterval(() => { if (!document.hidden) refreshNotifications(); }, NOTIF_POLL_MS);
+  // Catch up immediately when the user comes back to the tab
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshNotifications(); });
 }

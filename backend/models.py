@@ -35,6 +35,18 @@ class PasswordResetToken(Base):
     used_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
+class Notification(Base):
+    """In-app notification shown under the bell icon."""
+    __tablename__ = "notifications"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    ticket_id = Column(Integer, ForeignKey("tickets.id"), nullable=True)
+    kind = Column(String(32), nullable=False)       # e.g. ticket_assigned, reply, resolved
+    message = Column(String(300), nullable=False)
+    link = Column(String(200), nullable=True)       # page to open when clicked
+    read_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+
 class ProblemCluster(Base):
     __tablename__ = "problem_clusters"
     id = Column(Integer, primary_key=True, index=True)

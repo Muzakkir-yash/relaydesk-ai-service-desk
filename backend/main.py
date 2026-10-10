@@ -15,8 +15,9 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from config import settings
 from database import run_migrations
 from ai.intent_model import warm_up
+from demo import seed_if_empty
 
-from routers import auth, tickets, kb, metrics, users, announcements
+from routers import auth, tickets, kb, metrics, users, announcements, notifications
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 
@@ -27,6 +28,7 @@ run_migrations()
 async def lifespan(app: FastAPI):
     # Load the chatbot's ML models in the background so the server is up
     # immediately and the first chat doesn't wait for training.
+    seed_if_empty()  # public demo: an empty (freshly wiped) database gets demo data
     threading.Thread(target=warm_up, name="model-warm-up", daemon=True).start()
     yield
 
@@ -68,11 +70,12 @@ app.include_router(kb.router)
 app.include_router(metrics.router)
 app.include_router(users.router)
 app.include_router(announcements.router)
+app.include_router(notifications.router)
 
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "app": "RelayDesk"}
+    return {"status": "ok", "app": "RelayDesk", "demo": settings.DEMO_MODE}
 
 
 class PublicStaticFiles(StaticFiles):

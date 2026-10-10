@@ -1,0 +1,51 @@
+# Runs the test suite on every push and pull request.
+# GitHub Actions is free for public repositories.
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: |
+            backend/requirements.txt
+            backend/requirements-dev.txt
+
+      - name: Install dependencies
+        run: pip install -r requirements-dev.txt
+
+      - name: Run tests
+        # Isolated: temporary SQLite database, paid AI switched off
+        run: python -m pytest -q
+
+      - name: Check migrations match the models
+        env:
+          DATABASE_URL: sqlite:///./ci-migrations.db
+        run: |
+          python -m alembic upgrade head
+          python -m alembic check
+
+      - name: Chatbot accuracy (honest test set)
+        env:
+          DATABASE_URL: sqlite:///./ci-eval.db
+        run: |
+          python seed.py > /dev/null
+          python evals/run_chatbot_eval.py --set fresh4 | tail -6
