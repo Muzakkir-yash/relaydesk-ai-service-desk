@@ -10,7 +10,6 @@ from database import get_db
 from auth import (hash_password, verify_password, create_session_token, get_current_user, set_password,
                   set_auth_cookie, clear_auth_cookie)
 from audit import write_audit
-from demo import guard_demo_account
 from notifications import notify, staff_ids
 from ratelimit import SlidingWindowLimiter, client_ip, enforce
 import models, schemas
@@ -132,7 +131,6 @@ def reset_password(payload: schemas.ResetPasswordRequest, request: Request, db: 
     user = db.query(models.User).filter(models.User.id == reset.user_id).first()
     if not user:
         raise HTTPException(status_code=400, detail="This reset link is invalid or has expired. Ask IT for a new one.")
-    guard_demo_account(user)
     set_password(user, payload.new_password)
     user.password_reset_requested_at = None
     reset.used_at = datetime.utcnow()
@@ -149,7 +147,6 @@ def change_password(
     current_user: models.User = Depends(get_current_user),
 ):
     """Change your own password. Other devices are signed out; this one stays signed in."""
-    guard_demo_account(current_user)
     if not verify_password(payload.current_password, current_user.password_hash):
         raise HTTPException(status_code=400, detail="Current password is incorrect")
     set_password(current_user, payload.new_password)

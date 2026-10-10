@@ -38,10 +38,6 @@ class Settings(BaseSettings):
     # Nothing is sent to it unless ENABLE_PAID_AI is explicitly set to true.
     ENABLE_PAID_AI: bool = False
 
-    # Public demo hosting (see demo.py)
-    DEMO_MODE: bool = False
-    SEED_DEMO_DATA: bool = False
-
     ANTHROPIC_API_KEY: str = ""
     ANTHROPIC_MODEL: str = "claude-opus-5-5"
     AI_TIMEOUT_SECONDS: float = 120.0

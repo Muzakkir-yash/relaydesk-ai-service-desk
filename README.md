@@ -15,7 +15,6 @@
   <img src="https://img.shields.io/badge/Frontend-Vanilla%20JS-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black" />
   <img src="https://img.shields.io/badge/Database-SQLite%20%2F%20MySQL-4479A1?style=for-the-badge&logo=mysql&logoColor=white" />
   <a href="https://github.com/Muzakkir-yash/relaydesk-ai-service-desk/actions/workflows/tests.yml"><img src="https://github.com/Muzakkir-yash/relaydesk-ai-service-desk/actions/workflows/tests.yml/badge.svg" alt="Tests" height="28" /></a>
-  <img src="https://img.shields.io/badge/Deploy-Render%20(free)-6C63FF?style=for-the-badge" />
 </p>
 
 ---
@@ -34,7 +33,6 @@
 - [Testing](#testing)
 - [Database Migrations](#database-migrations)
 - [Security](#security)
-- [Deployment](#deployment)
 - [Project Structure](#project-structure)
 
 ---
@@ -209,8 +207,6 @@ Copy `backend/.env.example` to `backend/.env` and configure:
 | `CORS_ORIGINS` | Production | Comma-separated allowed origins |
 | `ENABLE_PAID_AI` | Optional | `false` by default. Set `true` plus `ANTHROPIC_API_KEY` to enable Claude |
 | `ANTHROPIC_API_KEY` | Optional | Only required if `ENABLE_PAID_AI=true` |
-| `DEMO_MODE` | Optional | `true` on a public demo: the shared `@company.com` demo accounts can't be changed or deleted, and the login page shows one-click demo accounts |
-| `SEED_DEMO_DATA` | Optional | `true` to load the demo data automatically whenever the database is empty |
 
 ---
 
@@ -374,38 +370,6 @@ alembic check                                      # verify models.py matches th
 | **Static file safety** | Mount refuses `node_modules/`, dotfiles, and build config |
 | **Production mode** | Refuses weak `SECRET_KEY`, strict CORS, no MySQL to SQLite fallback |
 | **Role isolation** | Public registration creates end users only; admin/technician accounts require admin action |
-
----
-
-## Deployment
-
-### Free public demo on Render
-
-The repo includes a [`render.yaml`](render.yaml) Blueprint that uses only Render's **free** plan.
-
-1. Sign up at [render.com](https://render.com) with your GitHub account.
-2. **New → Blueprint** → choose this repository → **Apply**.
-3. Wait for the first build (a few minutes). Your demo is live at `https://relaydesk-demo.onrender.com` (or the name Render assigns).
-
-What to expect on the free plan:
-- It **sleeps after 15 minutes without visitors**; the next visit wakes it in about a minute.
-- There is **no permanent disk**, so the SQLite database is wiped on every restart. `SEED_DEMO_DATA=true` reloads the demo data, so every visitor gets a clean demo, and `DEMO_MODE=true` protects the shared demo logins.
-- For a permanent installation with real data, use a server with a persistent disk or MySQL (below).
-
-### Any other host
-
-`Procfile` start command (migrations run automatically on boot, and the backend serves the frontend — **a single service is all you need**):
-
-```
-web: cd backend && uvicorn main:app --host 0.0.0.0 --port $PORT --proxy-headers --forwarded-allow-ips="*"
-```
-
-### Switch to MySQL (Production)
-
-```env
-DATABASE_URL=mysql+pymysql://user:password@host:3306/relaydesk
-ENVIRONMENT=production
-```
 
 ---
 

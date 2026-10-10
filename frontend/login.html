@@ -485,16 +485,6 @@
 
       <!-- ================= SIGN IN VIEW ================= -->
       <div id="signin-view">
-        <!-- Shown only when the server runs in public demo mode -->
-        <div id="demo-accounts" style="display: none; margin-bottom: 16px; padding: 12px 14px; border-radius: 10px; background: rgba(129, 140, 248, 0.12); border: 1px solid rgba(129, 140, 248, 0.35);">
-          <div style="font-size: 12px; font-weight: 700; color: #c7d2fe; margin-bottom: 8px;">Public demo — pick an account to try:</div>
-          <div style="display: flex; gap: 6px; flex-wrap: wrap;">
-            <button type="button" class="demo-account-btn" data-email="alice@company.com" style="flex: 1; padding: 7px 8px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.06); color: #e0e7ff; font-size: 11.5px; cursor: pointer;">👤 End user</button>
-            <button type="button" class="demo-account-btn" data-email="charlie@company.com" style="flex: 1; padding: 7px 8px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.06); color: #e0e7ff; font-size: 11.5px; cursor: pointer;">🔧 Technician</button>
-            <button type="button" class="demo-account-btn" data-email="admin@company.com" style="flex: 1; padding: 7px 8px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.06); color: #e0e7ff; font-size: 11.5px; cursor: pointer;">🛡️ Admin</button>
-          </div>
-          <div style="font-size: 10.5px; color: #a5b4fc; margin-top: 8px;">Password for all demo accounts: <strong>password123</strong>. The demo resets itself regularly.</div>
-        </div>
         <form id="login-form">
           <div class="field-group">
             <label class="field-label">Enterprise Email</label>
@@ -686,17 +676,6 @@
         updateView();
       });
     }
-
-    // Public demo: show one-click demo accounts
-    fetch('/health').then(r => r.json()).then(info => {
-      if (!info.demo) return;
-      document.getElementById('demo-accounts').style.display = 'block';
-      document.querySelectorAll('.demo-account-btn').forEach(btn => btn.addEventListener('click', () => {
-        document.getElementById('login-email').value = btn.dataset.email;
-        document.getElementById('login-password').value = 'password123';
-        document.getElementById('login-form').requestSubmit();
-      }));
-    }).catch(() => {});
 
     // Forgot password: notifies IT; an admin then sends a one-time reset link
     document.getElementById('forgot-pw-btn')?.addEventListener('click', async () => {
