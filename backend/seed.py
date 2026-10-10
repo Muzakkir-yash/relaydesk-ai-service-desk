@@ -105,7 +105,7 @@ mim_announcements = [
         "title": "⚠️ Major Incident MIM-2026-084: GlobalProtect VPN Gateway Intermittent Degradation",
         "message": "Users connecting from Europe & APAC gateways may experience intermittent TLS tunnel disconnects or handshake stalls. The Network Operations Center (NOC) is actively re-routing traffic to secondary cluster concentrators.",
         "severity": "warning",
-        "is_active": True,
+        "is_active": False,  # demo incident starts resolved — no banner on a fresh install
         "affected_services": ["GlobalProtect VPN", "EMEA Core Gateway", "Zscaler Edge Connector"],
         "workaround": "In VPN Client Preferences, switch Gateway from 'EMEA-Auto' to 'US-East-Failover' or use the Web Access Portal.",
         "estimated_resolution": "11:45 AM EST (In ~30 mins)",

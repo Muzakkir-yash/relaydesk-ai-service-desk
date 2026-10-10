@@ -19,6 +19,7 @@ from ai.client import ai_enabled, complete_json
 from ai.deflector import diagnose_and_triage, _has_it_problem
 from ai.intent_model import category_model, intent_model
 from ai.knowledge import KnowledgeIndex, conversation_query
+from ai.summary import is_good_title, summarize_title
 
 logger = logging.getLogger("relaydesk.assistant")
 
@@ -292,6 +293,20 @@ async def _offline_turn(message: str, history: Sequence[Dict], articles: List[Di
     return result
 
 
+def _with_problem_title(result: Dict[str, Any], message: str, history: Sequence[Dict]) -> Dict[str, Any]:
+    """Suggested ticket title from the messages that describe the problem."""
+    user_messages = [m.get("text") or m.get("body") or "" for m in history
+                     if m.get("sender") == "user" or m.get("sender_type") in ("user", "enduser")]
+    if not user_messages or user_messages[-1] != message:
+        user_messages.append(message)
+    title = summarize_title(user_messages, fallback="")
+    if title:
+        result["subject"] = title
+    elif not is_good_title(result.get("subject")):
+        result["subject"] = ""
+    return result
+
+
 async def chat_turn(message: str, history: Sequence[Dict], articles: List[Dict]) -> Dict[str, Any]:
     """One assistant turn. `articles` are the published KB articles."""
     hits = KnowledgeIndex(articles).search(conversation_query(message, history), limit=5, min_score=0.5)
@@ -300,4 +315,4 @@ async def chat_turn(message: str, history: Sequence[Dict], articles: List[Dict])
         if reply:
             return reply
         logger.info("Claude unavailable for this turn; using the rule-based assistant")
-    return await _offline_turn(message, history, articles, hits)
+    return _with_problem_title(await _offline_turn(message, history, articles, hits), message, history)

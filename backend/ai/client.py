@@ -6,14 +6,20 @@ Every job has a deterministic rule-based fallback, so any failure here
 caller falls back instead of raising.
 """
 
+from __future__ import annotations
+
 import json
 import logging
 from functools import lru_cache
-from typing import Any, Dict, List, Literal, Optional, Union
-
-import anthropic
+from typing import TYPE_CHECKING, Any, Dict, List, Literal, Optional, Union
 
 from config import settings
+
+if TYPE_CHECKING:
+    import anthropic
+
+# The Anthropic SDK is imported only when paid AI is switched on — it takes
+# several seconds to load, and in the default free setup it is never used.
 
 logger = logging.getLogger("relaydesk.ai")
 
@@ -42,6 +48,7 @@ def get_client() -> anthropic.AsyncAnthropic:
     # Second guard: never even build a client while paid AI is off
     if not ai_enabled():
         raise RuntimeError("Paid AI is disabled (ENABLE_PAID_AI=false)")
+    import anthropic
     return anthropic.AsyncAnthropic(
         api_key=settings.ANTHROPIC_API_KEY,
         timeout=settings.AI_TIMEOUT_SECONDS,
@@ -64,6 +71,8 @@ async def _create(
     toward max_tokens, so callers size max_tokens for thinking plus the reply."""
     if not ai_enabled():
         return None
+    import anthropic
+
     messages = [{"role": "user", "content": user_content}] if isinstance(user_content, str) else user_content
 
     output_config: Dict[str, Any] = {"effort": effort}

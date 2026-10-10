@@ -143,6 +143,10 @@ RelayDesk is a full-stack AI-powered IT service desk built with **FastAPI** and 
 
 > **Requirements:** Python 3.10+ | No Node.js needed
 
+**Windows, easiest:** double-click **`start.bat`** in the project folder. It uses the project's own Python environment, installs anything missing on the first run, starts the server and opens http://localhost:8000. Close its window to stop the server.
+
+**Manual setup:**
+
 ```bash
 # 1. Clone the repository
 git clone https://github.com/Muzakkir-yash/relaydesk-ai-service-desk.git
@@ -169,6 +173,8 @@ python main.py
 ```
 
 Then open **http://localhost:8000** in your browser.
+
+> ⚠️ Always run with the virtual environment active (step 2). Plain `python main.py` without it fails with `No module named 'sklearn'`, because the libraries are installed inside `backend\venv`.
 
 FastAPI serves the entire frontend — no `npm install`, no build step, no separate dev server.
 

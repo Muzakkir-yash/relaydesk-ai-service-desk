@@ -11,7 +11,7 @@ import json
 import logging
 import re
 from datetime import datetime, timedelta
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Tuple
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
@@ -25,6 +25,7 @@ from ai.deflector import deflect_ticket, generate_ai_chat_reply, STOPWORDS
 from ai.briefing import generate_briefing
 from ai.assistant import chat_turn
 from ai.learning import draft_article
+from ai.summary import is_good_title, summarize_description, summarize_title
 
 logger = logging.getLogger("relaydesk.tickets")
 
@@ -127,6 +128,18 @@ def _transcript_messages(raw_messages: List[dict]) -> List[Dict[str, str]]:
         is_user = m.get("sender") == "user" or m.get("sender_type") in ("user", "enduser")
         out.append({"sender_type": "user" if is_user else "ai", "body": body[:20000]})
     return out
+
+
+def _chat_title_and_description(transcript: List[Dict[str, str]], client_subject: Optional[str],
+                                fallback: str) -> Tuple[str, str]:
+    """Title and description for a ticket created from a chat, built from the
+    messages that describe the problem — never "Hi" or "thanks"."""
+    user_messages = [m["body"] for m in transcript if m["sender_type"] == "user"]
+    title = summarize_title(user_messages, fallback="")
+    if not title:
+        title = client_subject.strip() if is_good_title(client_subject) else fallback
+    description = summarize_description(user_messages) or title
+    return title[:256], description
 
 
 def _clean_choice(value: Optional[str], allowed: set, default: str) -> str:
@@ -476,13 +489,12 @@ def ai_triage_resolve(
     Creates a ticket record in status 'deflected' and updates deflection metrics.
     """
     transcript = _transcript_messages(payload.messages)
-    first_msg = next((m["body"] for m in transcript if m["sender_type"] == "user"), "")
-    subject = (payload.subject or first_msg[:75] or "Self-Service IT Resolution")[:256]
+    subject, description = _chat_title_and_description(transcript, payload.subject, "Self-service chat (no issue described)")
 
     ticket = models.Ticket(
         user_id=current_user.id,
         subject=subject,
-        description=first_msg or subject,
+        description=description,
         category=_clean_choice(payload.category, VALID_CATEGORIES, "general"),
         priority=_clean_choice(payload.priority, VALID_PRIORITIES, "low"),
         status="deflected",
@@ -531,14 +543,13 @@ async def ai_triage_escalate(
     Generates the Handover Briefing and auto-assigns an L1/L2/L3 technician by workload.
     """
     transcript = _transcript_messages(payload.messages)
-    first_msg = next((m["body"] for m in transcript if m["sender_type"] == "user"), "")
-    subject = (payload.subject or first_msg[:75] or "Escalated IT Support Request")[:256]
+    subject, description = _chat_title_and_description(transcript, payload.subject, "IT support request (see conversation)")
     priority = _clean_choice(payload.priority, VALID_PRIORITIES, "medium")
 
     ticket = models.Ticket(
         user_id=current_user.id,
         subject=subject,
-        description=first_msg or subject,
+        description=description,
         category=_clean_choice(payload.category, VALID_CATEGORIES, "other"),
         priority=priority,
         status="escalated",

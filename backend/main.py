@@ -102,4 +102,7 @@ if os.path.isdir(frontend_dir):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=not settings.is_production)
+    # Auto-reload restarts the server when code changes — handy while developing,
+    # but it doubles start-up time. start.bat turns it off (RELAYDESK_RELOAD=0).
+    reload = not settings.is_production and os.environ.get("RELAYDESK_RELOAD", "1") != "0"
+    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=reload)
