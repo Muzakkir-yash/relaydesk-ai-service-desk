@@ -14,10 +14,26 @@ class User(Base):
     team = Column(String(64), nullable=True)
     support_level = Column(String(16), nullable=False, default="L1")  # "L1", "L2", "L3"
     primary_device = Column(JSON, nullable=True)  # Default enterprise endpoint assigned to user
+    # Sessions issued before this moment are rejected (set when the password changes)
+    password_changed_at = Column(DateTime, nullable=True)
+    # Set by "Forgot password?"; cleared when an admin issues a reset link
+    password_reset_requested_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     submitted_tickets = relationship("Ticket", foreign_keys="Ticket.user_id", back_populates="submitter")
     assigned_tickets = relationship("Ticket", foreign_keys="Ticket.assigned_to", back_populates="assignee")
     messages = relationship("TicketMessage", back_populates="sender")
+
+class PasswordResetToken(Base):
+    """Single-use, 24-hour password reset link issued by an admin.
+    Only a SHA-256 hash of the token is stored, never the token itself."""
+    __tablename__ = "password_reset_tokens"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    token_hash = Column(String(64), unique=True, nullable=False, index=True)
+    created_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    expires_at = Column(DateTime, nullable=False)
+    used_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
 
 class ProblemCluster(Base):
     __tablename__ = "problem_clusters"

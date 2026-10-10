@@ -64,6 +64,10 @@ class Base(DeclarativeBase):
 
 # ── Schema migrations (Alembic) ───────────────────────────────────
 BASELINE_REVISION = "0001"
+BASELINE_TABLES = {
+    "users", "problem_clusters", "tickets", "ticket_messages", "kb_articles", "handover_briefings",
+    "ai_actions", "audit_log", "sla_policies", "ticket_ratings", "system_announcements",
+}
 
 # Columns that older, pre-Alembic versions of the app added at runtime.
 _LEGACY_COLUMNS = {
@@ -94,7 +98,10 @@ def _bring_legacy_db_to_baseline(connection) -> None:
         for name, ddl in columns.items():
             if name not in present:
                 connection.execute(text(f"ALTER TABLE {table} ADD COLUMN {name} {ddl}"))
-    missing = [t for name, t in Base.metadata.tables.items() if name not in existing_tables]
+    # Only tables that existed at the baseline revision — later tables are
+    # created by their own migrations after the database is stamped.
+    missing = [t for name, t in Base.metadata.tables.items()
+               if name in BASELINE_TABLES and name not in existing_tables]
     if missing:
         Base.metadata.create_all(bind=connection, tables=missing)
 

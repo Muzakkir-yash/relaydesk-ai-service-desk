@@ -55,6 +55,21 @@ def verify_password(plain: str, hashed: str) -> bool:
         return False
 
 
+def password_stamp(user: models.User) -> str:
+    """Changes whenever the user's password changes. Stored in every session
+    token, so changing or resetting a password signs out all older sessions."""
+    return user.password_changed_at.isoformat() if user.password_changed_at else ""
+
+
+def create_session_token(user: models.User) -> str:
+    return create_access_token({"sub": str(user.id), "role": user.role, "pwd": password_stamp(user)})
+
+
+def set_password(user: models.User, new_password: str) -> None:
+    user.password_hash = hash_password(new_password)
+    user.password_changed_at = datetime.utcnow()
+
+
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
     to_encode = data.copy()
     expire = datetime.utcnow() + (
@@ -91,6 +106,9 @@ def get_current_user(
 
     user = db.query(models.User).filter(models.User.id == user_id).first()
     if user is None:
+        raise credentials_exception
+    # Issued before the last password change -> signed out
+    if payload.get("pwd", "") != password_stamp(user):
         raise credentials_exception
     return user
 

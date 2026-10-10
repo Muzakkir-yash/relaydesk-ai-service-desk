@@ -7,6 +7,9 @@ PATCH  /users/{id}   — update role, team, or support_level
 DELETE /users/{id}   — delete a user with no ticket history
 """
 
+import hashlib
+import secrets
+from datetime import datetime, timedelta
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import func, or_
@@ -118,8 +121,42 @@ def delete_user(
 
     email = user.email
     db.query(models.TicketMessage).filter(models.TicketMessage.sender_id == user_id).update({"sender_id": None})
+    db.query(models.PasswordResetToken).filter(models.PasswordResetToken.user_id == user_id).delete()
+    db.query(models.PasswordResetToken).filter(models.PasswordResetToken.created_by_id == user_id).update({"created_by_id": None})
     db.delete(user)
     db.commit()
 
     write_audit(db, current_user, "user_deleted", "user", user_id, f"Admin deleted user #{user_id} ({email})")
     return None
+
+
+RESET_LINK_HOURS = 24
+
+
+@router.post("/{user_id}/reset-link", response_model=schemas.ResetLinkOut)
+def create_reset_link(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_role("admin")),
+):
+    """One-time password reset link for the admin to give to the user.
+    Valid for 24 hours; issuing a new link cancels any older unused ones."""
+    user = _get_user_or_404(user_id, db)
+    now = datetime.utcnow()
+    db.query(models.PasswordResetToken).filter(
+        models.PasswordResetToken.user_id == user.id, models.PasswordResetToken.used_at.is_(None)
+    ).update({"used_at": now}, synchronize_session=False)
+
+    token = secrets.token_urlsafe(32)
+    expires_at = now + timedelta(hours=RESET_LINK_HOURS)
+    db.add(models.PasswordResetToken(
+        user_id=user.id,
+        token_hash=hashlib.sha256(token.encode()).hexdigest(),  # only the hash is stored
+        created_by_id=current_user.id,
+        expires_at=expires_at,
+    ))
+    user.password_reset_requested_at = None
+    db.commit()
+    write_audit(db, current_user, "password_reset_link_issued", "user", user.id,
+                f"Admin issued a password reset link for {user.email}")
+    return {"reset_path": f"/reset-password.html?token={token}", "expires_at": expires_at}

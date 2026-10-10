@@ -144,6 +144,32 @@
     </div>
   </div>
 
+  <!-- Reset Link Modal -->
+  <div class="modal-overlay" id="reset-link-modal">
+    <div class="modal-card" style="max-width: 540px;">
+      <div class="modal-header">
+        <h3 style="font-size: 16px; font-weight: 800; color: var(--text-main);">Password reset link</h3>
+        <button class="btn btn-ghost btn-sm close-reset-modal">✕</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 13px; color: var(--text-body); margin-bottom: 10px;">
+          Send this link privately to <strong id="reset-link-user"></strong> (for example in a Teams chat).
+          It works <strong>once</strong> and expires <strong id="reset-link-expiry"></strong>.
+        </p>
+        <div style="display: flex; gap: 8px;">
+          <input type="text" id="reset-link-input" class="form-input" readonly style="font-family: var(--font-mono); font-size: 12px;" />
+          <button class="btn btn-primary btn-sm" id="copy-reset-link">Copy</button>
+        </div>
+        <p style="font-size: 11.5px; color: var(--text-muted); margin-top: 10px;">
+          The link is shown only now and isn't stored in readable form. Close this window and create a new link if it gets lost.
+        </p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary btn-sm close-reset-modal">Done</button>
+      </div>
+    </div>
+  </div>
+
   <script type="module">
     import { requireAuth } from './js/auth.js';
     import { renderLayout, showToast } from './js/app.js';
@@ -210,7 +236,10 @@
                   <div style="width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, #4f46e5, #8b5cf6); color: white; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0;">
                     ${initials}
                   </div>
-                  <div style="font-weight: 700; color: var(--text-main); font-size: 13.5px;">${escapeHtml(u.name || 'User')}</div>
+                  <div>
+                    <div style="font-weight: 700; color: var(--text-main); font-size: 13.5px;">${escapeHtml(u.name || 'User')}</div>
+                    ${u.password_reset_requested_at ? '<span class="badge-text" style="background: #fef3c7; color: #92400e; border: 1px solid #fde68a; font-size: 10px; margin-top: 3px; display: inline-block;" title="Asked for a password reset">🔑 reset requested</span>' : ''}
+                  </div>
                 </div>
               </td>
               <td>
@@ -229,6 +258,7 @@
               </td>
               <td style="text-align: right; white-space: nowrap;">
                 <button class="btn btn-secondary btn-sm" data-edit="${u.id}">Edit</button>
+                ${isSelf ? '' : `<button class="btn btn-secondary btn-sm" data-reset="${u.id}" title="Create a one-time password reset link">Reset password</button>`}
                 ${isSelf ? '' : `<button class="btn btn-ghost btn-sm" style="color: #dc2626;" data-delete="${u.id}">Delete</button>`}
               </td>
             </tr>
@@ -237,6 +267,7 @@
 
         tbody.querySelectorAll('[data-edit]').forEach(btn => btn.addEventListener('click', () => openEdit(Number(btn.dataset.edit))));
         tbody.querySelectorAll('[data-delete]').forEach(btn => btn.addEventListener('click', () => deleteUser(Number(btn.dataset.delete))));
+        tbody.querySelectorAll('[data-reset]').forEach(btn => btn.addEventListener('click', () => createResetLink(Number(btn.dataset.reset))));
       }
 
       const editRole = document.getElementById('e-role');
@@ -280,6 +311,41 @@
         } catch (err) {
           showToast('Update failed: ' + err.message, 'error');
         }
+      });
+
+      async function createResetLink(id) {
+        const u = allUsers.find(x => x.id === id);
+        if (!u || !confirm(`Create a password reset link for ${u.name}? Any older unused link stops working.`)) return;
+        try {
+          const res = await apiRequest(`/users/${id}/reset-link`, { method: 'POST' });
+          const link = window.location.origin + res.reset_path;
+          document.getElementById('reset-link-user').textContent = `${u.name} (${u.email})`;
+          document.getElementById('reset-link-input').value = link;
+          document.getElementById('reset-link-expiry').textContent =
+            new Date(res.expires_at + (res.expires_at.endsWith('Z') ? '' : 'Z')).toLocaleString();
+          document.getElementById('reset-link-modal').classList.add('open');
+          loadUsers();
+        } catch (err) {
+          showToast('Could not create reset link: ' + err.message, 'error');
+        }
+      }
+
+      document.getElementById('copy-reset-link').addEventListener('click', async () => {
+        const input = document.getElementById('reset-link-input');
+        try {
+          await navigator.clipboard.writeText(input.value);
+        } catch {
+          input.select();
+          document.execCommand('copy');
+        }
+        showToast('Reset link copied — send it to the user privately.', 'success');
+      });
+
+      document.querySelectorAll('.close-reset-modal').forEach(b => {
+        b.addEventListener('click', () => {
+          document.getElementById('reset-link-input').value = '';  // don't leave the link on screen
+          document.getElementById('reset-link-modal').classList.remove('open');
+        });
       });
 
       async function deleteUser(id) {

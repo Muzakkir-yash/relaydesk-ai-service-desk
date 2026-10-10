@@ -75,6 +75,25 @@ class UserLogin(BaseModel):
     password: str
 
 
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str = Field(min_length=20, max_length=200)
+    new_password: str = Field(min_length=8, max_length=128)
+
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str = Field(min_length=1, max_length=128)
+    new_password: str = Field(min_length=8, max_length=128)
+
+
+class ResetLinkOut(BaseModel):
+    reset_path: str
+    expires_at: datetime
+
+
 class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"
@@ -89,6 +108,7 @@ class UserOut(BaseModel):
     support_level: Optional[str] = "L1"
     primary_device: Optional[Any] = None
     created_at: datetime
+    password_reset_requested_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True

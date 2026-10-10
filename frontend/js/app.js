@@ -166,6 +166,7 @@ export function renderLayout(pageTitle = 'NexusIT', activeNav = '') {
             <div class="user-name">${escapeHtml(user?.name || user?.email || 'User')}</div>
             <div class="user-role-tag">${user?.role === 'technician' ? `TECH • ${escapeHtml(user?.support_level || 'L1')}`: user?.role === 'admin' ? 'ADMINISTRATOR' : 'END USER'}</div>
           </div>
+          <button id="change-pw-btn" class="btn btn-ghost btn-sm" title="Change password" style="padding: 6px; border-radius: var(--radius-sm);">🔑</button>
           <button id="logout-btn" class="btn btn-ghost btn-sm" title="Sign out" style="padding: 6px; border-radius: var(--radius-sm);">
             ${ICONS.logout}
           </button>
@@ -230,6 +231,7 @@ export function renderLayout(pageTitle = 'NexusIT', activeNav = '') {
 
   // Bind logout
   document.getElementById('logout-btn')?.addEventListener('click', () => logout());
+  document.getElementById('change-pw-btn')?.addEventListener('click', () => openChangePasswordModal());
 
   // Sound Toggle handler (silent toggle without popup toast)
   const soundBtn = document.getElementById('sound-toggle-btn');
@@ -262,6 +264,9 @@ export async function loadGlobalOutageBanner() {
     const contentBody = document.querySelector('.content-body');
     if (!contentBody) return;
 
+    const role = getUser()?.role;
+    const isStaff = role === 'technician' || role === 'admin';
+
     // Check if dismissed in session
     if (sessionStorage.getItem(`dismiss_outage_${banner.id}`)) return;
 
@@ -280,7 +285,12 @@ export async function loadGlobalOutageBanner() {
               View Workaround
             </button>
           ` : ''}
-          <button id="dismiss-outage-btn" class="btn btn-ghost btn-sm" style="padding: 4px 8px;" title="Dismiss banner">✕</button>
+          ${isStaff ? `
+            <button id="resolve-outage-btn" class="btn btn-secondary btn-sm" style="font-weight: 700; border-color: #bbf7d0; background: #f0fdf4; color: #166534;" title="End this incident for everyone">
+              ✓ Mark resolved
+            </button>
+          ` : ''}
+          <button id="dismiss-outage-btn" class="btn btn-ghost btn-sm" style="padding: 4px 8px;" title="Hide for me">✕</button>
         </div>
       </div>
     `;
@@ -294,6 +304,18 @@ export async function loadGlobalOutageBanner() {
 
     document.getElementById('view-workaround-btn')?.addEventListener('click', () => {
       renderWorkaroundModal(banner);
+    });
+
+    // Staff end the incident for everyone (the ✕ only hides it for one person)
+    document.getElementById('resolve-outage-btn')?.addEventListener('click', async () => {
+      if (!confirm(`Mark "${banner.title}" as resolved? The banner disappears for everyone.`)) return;
+      try {
+        await apiRequest(`/announcements/${banner.id}`, { method: 'PATCH', body: { is_active: false } });
+        document.getElementById('global-outage-banner')?.remove();
+        showToast('Incident marked as resolved.', 'success');
+      } catch (err) {
+        showToast('Could not resolve incident: ' + err.message, 'error');
+      }
     });
   } catch (err) {
     console.debug('No active outage announcements:', err);
@@ -437,5 +459,59 @@ export function renderSystemGuideModal() {
 
   document.querySelectorAll('.close-guide-btn').forEach(btn => {
     btn.addEventListener('click', () => document.getElementById('system-guide-modal')?.remove());
+  });
+}
+
+
+export function openChangePasswordModal() {
+  document.getElementById('change-pw-modal')?.remove();
+  document.body.insertAdjacentHTML('beforeend', `
+    <div class="modal-overlay open" id="change-pw-modal">
+      <div class="modal-card" style="max-width: 420px;">
+        <div class="modal-header">
+          <h3 style="font-size: 16px; font-weight: 800; color: var(--text-main);">Change password</h3>
+          <button class="btn btn-ghost btn-sm close-pw-modal">✕</button>
+        </div>
+        <form id="change-pw-form" class="modal-body">
+          <div class="form-group">
+            <label class="form-label" for="cp-current">Current password</label>
+            <input type="password" id="cp-current" class="form-input" required autocomplete="current-password" />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="cp-new">New password (at least 8 characters)</label>
+            <input type="password" id="cp-new" class="form-input" minlength="8" maxlength="128" required autocomplete="new-password" />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="cp-confirm">Confirm new password</label>
+            <input type="password" id="cp-confirm" class="form-input" minlength="8" maxlength="128" required autocomplete="new-password" />
+          </div>
+          <p style="font-size: 11.5px; color: var(--text-muted);">Other devices signed in to your account will be signed out.</p>
+        </form>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary btn-sm close-pw-modal">Cancel</button>
+          <button type="submit" form="change-pw-form" class="btn btn-primary btn-sm">Save</button>
+        </div>
+      </div>
+    </div>
+  `);
+  const modal = document.getElementById('change-pw-modal');
+  modal.querySelectorAll('.close-pw-modal').forEach(b => b.addEventListener('click', () => modal.remove()));
+  document.getElementById('change-pw-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const newPassword = document.getElementById('cp-new').value;
+    if (newPassword !== document.getElementById('cp-confirm').value) {
+      showToast("The new passwords don't match.", 'error');
+      return;
+    }
+    try {
+      await apiRequest('/auth/change-password', {
+        method: 'POST',
+        body: { current_password: document.getElementById('cp-current').value, new_password: newPassword }
+      });
+      modal.remove();
+      showToast('Password changed.', 'success');
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
   });
 }
