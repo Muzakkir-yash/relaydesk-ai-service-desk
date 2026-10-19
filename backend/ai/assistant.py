@@ -12,13 +12,15 @@ rule-based engine (ai/deflector.py) handles it using the same knowledge.
 """
 
 import logging
+import re
 from typing import Any, Dict, List, Optional, Sequence
 
 from ai.classifier import _fallback_classify
 from ai.client import ai_enabled, complete_json
-from ai.deflector import diagnose_and_triage, _has_it_problem
+from ai.deflector import (confident_article, diagnose_and_triage, expand_related, has_safety_phrase, matcher_ranking,
+                          _has_it_problem)
 from ai.intent_model import category_model, intent_model
-from ai.knowledge import KnowledgeIndex, conversation_query
+from ai.knowledge import KnowledgeIndex, conversation_query, correct_typos
 from ai.summary import is_good_title, summarize_title
 
 logger = logging.getLogger("relaydesk.assistant")
@@ -181,6 +183,36 @@ _ESCALATION_REPLIES = {
 }
 _ESCALATION_PRIORITY = {"security": "high", "outage": "critical"}
 
+# An outage affects more than one person or takes a whole system down.
+# Without either signal "I can't access the shared drive" is one user's problem.
+_OUTAGE_SIGNALS = re.compile(
+    r"\b(everyone|everybody|nobody|no one|anyone|whole|entire|all (?!the time\b|day\b|night\b)|multiple|several|"
+    r"none of|every|colleagues|coworkers|co-workers|team|department|office|floor|building|branch|company|staff|users|"
+    r"people in|shop|store|warehouse|site|rooms|"
+    r"not just me|we|us|our|down|outage|offline|dead|unavailable)\b")
+
+
+# In a call "everyone can't hear me" means the other participants, not the whole company
+_CALL_CONTEXT = re.compile(r"\b(calls?|meetings?|present\w*|shar(e|ed|ing)|hear me|see me|on mute|muted|my video|my screen|my slides)\b")
+_PARTICIPANTS = re.compile(r"\b(everyone|everybody|nobody|no one|anyone|people|others|colleagues)\b")
+
+
+def _looks_like_outage(text: str) -> bool:
+    lowered = text.lower()
+    if _CALL_CONTEXT.search(lowered):
+        lowered = _PARTICIPANTS.sub(" ", lowered)
+    return bool(_OUTAGE_SIGNALS.search(lowered))
+
+
+# A request asks for something: equipment, access, an install, an account change
+_REQUEST_CUES = re.compile(
+    r"\b(need|needs|want|wants|would like|i'd like|id like|get me|give me|can i (get|have)|could i (get|have)|may i|"
+    r"order|request\w*|new|replace\w*|swap|upgrade|install\w*|access|permission\w*|rights|set ?up|create|add me|"
+    r"remove|disable|move|leaver|starter|joiner|licen[cs]e|get|getting|have a|chance of|possible to|can we|could we|"
+    r"repair\w*|fix it for me|broken|damaged|switch(ed)? off|turn(ed)? off|deactivate\w*|has left|have left|"
+    r"left (on|the|last|yesterday|today)|leaving|her account|his account|their account)\b")
+REQUEST_OVERRIDE_MAX = 0.9  # a request the intent model is this sure of is never second-guessed
+
 
 def _model_category(text: str) -> str:
     label, confidence = category_model().predict(text)
@@ -189,11 +221,16 @@ def _model_category(text: str) -> str:
     return _fallback_classify(text, text)["category"]
 
 
-def _model_route(message: str, history: Sequence[Dict], hits=()) -> Optional[Dict[str, Any]]:
+def _model_route(message: str, history: Sequence[Dict], hits=(), articles: Sequence[Dict] = ()) -> Optional[Dict[str, Any]]:
     """Let the trained intent model handle turns it is confident about.
     Returns None for ordinary problem descriptions (the rule engine and
     knowledge base answer those) or when the model is unsure."""
     intent, confidence = intent_model().predict(message)
+    if confidence < MODEL_MIN_CONFIDENCE and intent in ("human", "request"):
+        # Both hand over to a technician, so a message split between them
+        # ("can you take control of my screen") is still a clear handover
+        probabilities = intent_model().probabilities(message)
+        confidence = probabilities["human"] + probabilities["request"]
     if confidence < MODEL_MIN_CONFIDENCE:
         return None
     # "What does a technician do?" asks for information; "Could someone call me?" is a request
@@ -204,6 +241,13 @@ def _model_route(message: str, history: Sequence[Dict], hits=()) -> Optional[Dic
     context = conversation_query(message, history)
     base = {"subject": "", "used_articles": [], "can_resolve": False}
 
+    if intent == "outage" and not _looks_like_outage(message):
+        return None
+    # "the screens and keyboard stay dead when i dock" describes a fault, not a request:
+    # with no request words and a knowledge-base fix the matcher is sure of, solve it
+    if intent == "request" and confidence < REQUEST_OVERRIDE_MAX and articles \
+            and not _REQUEST_CUES.search(message.lower()) and confident_article(message, list(articles)):
+        return None
     if intent in ("security", "outage", "human", "request") or (intent == "not_fixed" and ai_has_spoken):
         rules = _fallback_classify(context, context)
         priority = _ESCALATION_PRIORITY.get(intent) or (rules["priority"] if rules["priority"] != "low" else "medium")
@@ -239,21 +283,27 @@ def _model_route(message: str, history: Sequence[Dict], hits=()) -> Optional[Dic
 
 STRONG_MATCH_SCORE = 4.0  # any category
 CATEGORY_MATCH_SCORE = 1.0  # same category as the model's prediction
+CLEAR_LEAD = 1.25  # the best article must beat the runner-up by this factor
 
 
 def _pick_article(hits, category: Optional[str], relaxed: bool) -> Optional[Dict[str, Any]]:
-    for hit in hits:
-        if hit.score >= STRONG_MATCH_SCORE:
-            return hit.article
-    if relaxed and category:
-        for hit in hits:
-            if hit.score >= CATEGORY_MATCH_SCORE and (hit.article.get("category") or "").lower() == category:
-                return hit.article
+    """Only an article that clearly stands out: with a large knowledge base
+    a few generic words ("error", "shows") always match *something*, so a
+    near-tie means none of them is really about the user's problem."""
+    if not hits or (len(hits) > 1 and hits[0].score < CLEAR_LEAD * hits[1].score):
+        return None
+    best = hits[0]
+    if best.score >= STRONG_MATCH_SCORE:
+        return best.article
+    if relaxed and category and best.score >= CATEGORY_MATCH_SCORE \
+            and (best.article.get("category") or "").lower() == category:
+        return best.article
     return None
 
 
 async def _offline_turn(message: str, history: Sequence[Dict], articles: List[Dict], hits) -> Dict[str, Any]:
-    routed = _model_route(message, history, hits)
+    # Safety phrases ("knocked water over my laptop") go straight to the rules that escalate them
+    routed = None if has_safety_phrase(message) else _model_route(message, history, hits, articles)
     if routed:
         return routed
     result = await diagnose_and_triage(message=message, chat_history=list(history), kb_articles=articles)
@@ -307,12 +357,80 @@ def _with_problem_title(result: Dict[str, Any], message: str, history: Sequence[
     return result
 
 
+SUGGEST_TOP = 0.12  # the best guess must reach this, or the guesses are just noise
+SUGGEST_MIN = 0.06  # further guesses must reach this
+SUGGEST_MAX = 3
+SUGGEST_HEADER = "Is it one of these?"
+_ORDINALS = {"first": 1, "1st": 1, "one": 1, "second": 2, "2nd": 2, "two": 2, "third": 3, "3rd": 3, "three": 3}
+
+
+def _suggestions(text: str, articles: List[Dict]) -> List[Dict]:
+    """The articles the matcher thinks most likely, when it isn't sure enough to answer."""
+    ranking = matcher_ranking(text, articles)[:SUGGEST_MAX]
+    if not ranking or ranking[0][1] < SUGGEST_TOP:
+        return []
+    return [art for art, p in ranking if p >= SUGGEST_MIN]
+
+
+def _offer_suggestions(result: Dict[str, Any], message: str, history: Sequence[Dict], articles: List[Dict]) -> Dict[str, Any]:
+    """Turn a bare "please describe it" into "is it one of these?" with the
+    likeliest problems, so a user who described the symptom in their own
+    words is one click (or one number) away from the fix."""
+    if result.get("status_intent") != "clarify" or not articles:
+        return result
+    # Only for a described problem — "help" or "my pc is acting weird" get a question, not guesses
+    if intent_model().predict(message)[0] != "problem" and not _has_it_problem(message):
+        return result
+    guesses = _suggestions(conversation_query(message, history), articles)
+    if not guesses:
+        return result
+    options = "\n".join(f"{i}. **{art['title']}**" for i, art in enumerate(guesses, 1))
+    return {**result, "reply": (
+        f"I want to give you the right fix. {SUGGEST_HEADER}\n\n{options}\n\n"
+        "Reply with the number, or tell me a bit more (which device or app, and what you see).")}
+
+
+def _picked_suggestion(message: str, history: Sequence[Dict], articles: List[Dict]) -> Optional[Dict]:
+    """The article the user chose by replying "2" / "the second one" to our suggestions."""
+    last_ai = next((m.get("text") or m.get("body") or "" for m in reversed(history)
+                    if m.get("sender") in ("ai", "bot", "assistant") or m.get("sender_type") in ("ai", "bot", "assistant")), "")
+    if SUGGEST_HEADER not in last_ai:
+        return None
+    words = re.findall(r"[a-z0-9]+", message.lower())
+    if not words or len(words) > 4:
+        return None
+    choice = next((int(w) for w in words if w.isdigit()), None) or next((_ORDINALS[w] for w in words if w in _ORDINALS), None)
+    offered = re.findall(r"^(\d)\. \*\*(.+?)\*\*$", last_ai, flags=re.MULTILINE)
+    title = dict((int(n), t) for n, t in offered).get(choice)
+    return next((art for art in articles if art["title"] == title), None) if title else None
+
+
+def _answer_with_article(article: Dict, history: Sequence[Dict]) -> Dict[str, Any]:
+    problem = " ".join(m.get("text") or m.get("body") or "" for m in history
+                       if m.get("sender") == "user" or m.get("sender_type") in ("user", "enduser"))
+    priority = _fallback_classify(problem, problem)["priority"]
+    return {
+        "reply": (f"Here's the fix for **{article['title']}**:\n\n{article['body']}\n\n"
+                  "**Did this resolve your issue?** If not, I'll connect you with a technician."),
+        "status_intent": "troubleshoot", "can_resolve": True, "used_articles": [article],
+        "category": (article.get("category") or "other").lower(), "priority": priority, "subject": "",
+    }
+
+
 async def chat_turn(message: str, history: Sequence[Dict], articles: List[Dict]) -> Dict[str, Any]:
     """One assistant turn. `articles` are the published KB articles."""
-    hits = KnowledgeIndex(articles).search(conversation_query(message, history), limit=5, min_score=0.5)
+    picked = _picked_suggestion(message, history[:-1] if history and history[-1].get("text") == message else history, articles)
+    if picked:
+        earlier = [m for m in history if (m.get("text") or m.get("body")) != message]
+        first = next((m.get("text") or m.get("body") for m in earlier
+                      if m.get("sender") == "user" or m.get("sender_type") in ("user", "enduser")), message)
+        return _with_problem_title(_answer_with_article(picked, earlier), first, earlier)
+    message = correct_typos(message, articles)
+    hits = KnowledgeIndex(articles).search(expand_related(conversation_query(message, history)), limit=5, min_score=0.5)
     if ai_enabled():
         reply = await _claude_turn(message, history, [h for h in hits if h.score >= 1.0][:3])
         if reply:
             return reply
         logger.info("Claude unavailable for this turn; using the rule-based assistant")
-    return _with_problem_title(await _offline_turn(message, history, articles, hits), message, history)
+    result = await _offline_turn(message, history, articles, hits)
+    return _with_problem_title(_offer_suggestions(result, message, history, articles), message, history)

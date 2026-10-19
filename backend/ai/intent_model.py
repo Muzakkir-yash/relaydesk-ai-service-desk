@@ -85,8 +85,17 @@ def expand_templates(model: str, seed: int = 7) -> Tuple[List[str], List[str]]:
     return texts, labels
 
 
+_KEY_ROWS = ["qwertyuiop", "asdfghjkl", "zxcvbnm"]
+_NEIGHBOUR_KEYS = {
+    ch: [_KEY_ROWS[r2][c2] for r2 in (r - 1, r, r + 1) if 0 <= r2 < 3
+         for c2 in (c - 1, c, c + 1) if 0 <= c2 < len(_KEY_ROWS[r2]) and (r2, c2) != (r, c)]
+    for r, row in enumerate(_KEY_ROWS) for c, ch in enumerate(row)
+}
+
+
 def make_typo(text: str, rng: random.Random) -> str:
-    """One realistic typo: drop, swap or double a letter in a longer word."""
+    """One realistic typo: drop, swap or double a letter in a longer word, or
+    hit the key next to the right one."""
     words = text.split()
     candidates = [i for i, w in enumerate(words) if len(w) >= 4 and w.isalpha()]
     if not candidates:
@@ -94,11 +103,13 @@ def make_typo(text: str, rng: random.Random) -> str:
     i = rng.choice(candidates)
     w = words[i]
     pos = rng.randrange(1, len(w) - 1)
-    kind = rng.choice(("drop", "swap", "double"))
+    kind = rng.choice(("drop", "swap", "double", "neighbour"))
     if kind == "drop":
         w = w[:pos] + w[pos + 1:]
     elif kind == "swap":
         w = w[:pos - 1] + w[pos] + w[pos - 1] + w[pos + 1:]
+    elif kind == "neighbour" and w[pos].lower() in _NEIGHBOUR_KEYS:
+        w = w[:pos] + rng.choice(_NEIGHBOUR_KEYS[w[pos].lower()]) + w[pos + 1:]
     else:
         w = w[:pos] + w[pos] + w[pos:]
     words[i] = w
@@ -151,7 +162,7 @@ class AugmentedClassifier(BaseEstimator, ClassifierMixin):
 MODEL_FILES = {"intents": INTENTS_FILE, "categories": CATEGORIES_FILE}
 CACHE_DIR = os.path.join(TRAINING_DIR, ".model_cache")
 # Bump when the training code changes so stale cached models are not reused
-MODEL_VERSION = "2"
+MODEL_VERSION = "3"
 
 
 def _fingerprint(model: str) -> str:
@@ -188,6 +199,10 @@ class TextClassifier:
         probabilities = self.pipeline.predict_proba([text])[0]
         best = int(probabilities.argmax())
         return self.labels[best], float(probabilities[best])
+
+    def probabilities(self, text: str) -> Dict[str, float]:
+        """Probability of every label."""
+        return dict(zip(self.labels, map(float, self.pipeline.predict_proba([text])[0])))
 
 
 @lru_cache(maxsize=1)

@@ -330,7 +330,9 @@ for kba in kb_articles:
         existing.tags = kba["tags"]
 
 db.commit()
-print(f"  ✓ {len(kb_articles)} KB articles synchronized")
+from kb_library import KB_LIBRARY, sync_kb_library
+sync_kb_library(db, models, overwrite=True)
+print(f"  ✓ {len(kb_articles) + len(KB_LIBRARY)} KB articles synchronized")
 
 # ── SLA Policies ──────────────────────────────────────────────────
 sla_data = [

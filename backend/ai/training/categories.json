@@ -47,8 +47,12 @@
     "downloads over vpn are slow",
     "internet keeps timing out",
     "can't reach the file server",
-    "wifi signal drops in the meeting room",
-    "proxy blocks a website"
+    "proxy blocks a website",
+    "ethernet no internet",
+    "network cable not working",
+    "slow internet",
+    "remote desktop can't connect",
+    "certificate error on website"
   ],
   "access": [
     "forgot my password",
@@ -97,7 +101,12 @@
     "remote desktop says not authorised",
     "can't approve sign in on new phone",
     "need to be added to a security group",
-    "account shows as disabled"
+    "account shows as disabled",
+    "windows pin not working",
+    "can't log in to laptop",
+    "trust relationship failed",
+    "bitlocker recovery key",
+    "fingerprint sign in not working"
   ],
   "hardware": [
     "laptop won't turn on",
@@ -146,7 +155,28 @@
     "laptop makes clicking noise",
     "usb headset buzzing",
     "monitor has dead pixels",
-    "laptop won't wake from sleep"
+    "laptop won't wake from sleep",
+    "webcam not working",
+    "camera black screen",
+    "keyboard typing wrong characters",
+    "touchpad not working",
+    "mouse cursor jumping",
+    "bluetooth headphones won't pair",
+    "no sound from speakers",
+    "usb drive not detected",
+    "screen upside down",
+    "screen too dim",
+    "scanner not scanning",
+    "projector no signal",
+    "meeting room tv not working",
+    "work phone screen smashed",
+    "dropped my company phone and the glass broke",
+    "mobile phone display shattered",
+    "could i swap my mouse for an ergonomic one",
+    "i'd like a different keyboard",
+    "request a wrist friendly mouse",
+    "can i get a standing desk monitor arm",
+    "i want a new headset"
   ],
   "software": [
     "outlook won't open",
@@ -198,7 +228,23 @@
     "teams camera button disabled",
     "app keeps asking to update",
     "search in outlook finds nothing",
-    "pdf prints blank from adobe"
+    "pdf prints blank from adobe",
+    "disk full",
+    "low storage space",
+    "excel not responding",
+    "powerpoint crashes",
+    "office unlicensed product",
+    "recover deleted file",
+    "chrome not loading websites",
+    "app won't open",
+    "teams white screen",
+    "outlook search broken",
+    "email stuck in outbox",
+    "set up out of office",
+    "spam emails",
+    "copy paste not working",
+    "email not working on phone",
+    "time zone wrong"
   ],
   "other": [
     "general question",

@@ -327,7 +327,7 @@ python -m pytest
 
 Runs against an **isolated temporary SQLite database** — never touches `relaydesk.db`. All AI calls use a fake client — no API key required.
 
-**Coverage (80 tests):**
+**Coverage (122 tests):**
 - Full ticket lifecycle: create -> classify -> deflect -> escalate -> briefing -> resolve -> rate
 - Role and ownership enforcement
 - Input validation (enum values, length limits, password strength)
@@ -338,9 +338,30 @@ Runs against an **isolated temporary SQLite database** — never touches `relayd
 ### Chatbot Evaluation
 
 ```bash
-python evals/train_report.py                      # cross-validated accuracy per model
-python evals/run_chatbot_eval.py --set fresh4     # honest end-to-end score
+python evals/train_report.py                           # cross-validated accuracy per model
+python evals/run_chatbot_eval.py --set coverage        # 104 everyday problems, one per KB topic
+python evals/run_chatbot_eval.py --set final_holdout   # honest score on wording never tuned on
+python evals/run_chatbot_eval.py --set final_holdout --typos 2   # same, with 2 spelling mistakes per message
+python evals/run_chatbot_eval.py --set paraphrase2_holdout       # problems described without naming them
 ```
+
+**Teaching the chatbot a new problem:** add an article to `backend/kb_library.py` (or in the
+Knowledge Base page), then add a few messages users would type for it to
+`backend/ai/training/articles.json`. The article matcher retrains automatically.
+
+**Teaching it related words:** `backend/ai/training/related_terms.json` maps a topic word to the
+words people use for it (`"battery": ["charge", "plugged in", ...]`). A message containing any of them is
+searched as that topic too — add your users' own words there.
+
+**Spelling mistakes** are corrected against the chatbot's vocabulary (edit distance, keyboard-aware).
+If it ever "fixes" a correctly spelt word, add that word to `backend/ai/training/common_words.txt`.
+
+**Understanding meaning:** a small free sentence-embedding model (`BAAI/bge-small-en-v1.5` via
+`fastembed`, MIT/Apache-2.0, no PyTorch, no API key) compares the *meaning* of a message with every
+article's examples, so "the underside of my notebook is scorching" finds the overheating fix with no
+shared words. It downloads once (~65 MB, needs internet on the first start) into
+`backend/ai/training/.model_cache/` and runs offline afterwards. Set `RELAYDESK_SEMANTIC=0` to switch it
+off on a small server; the chatbot then uses its text classifier alone.
 
 ---
 
@@ -386,9 +407,11 @@ relaydesk-ai-service-desk/
 |   |   +-- client.py           # AI client abstraction (built-in / Claude)
 |   |   +-- deflector.py        # AI Job 2 -- self-service deflection
 |   |   +-- intent_model.py     # scikit-learn intent + category classifiers
-|   |   +-- knowledge.py        # BM25 knowledge base search
+|   |   +-- knowledge.py        # BM25 knowledge base search + typo correction
+|   |   +-- article_matcher.py  # scikit-learn model: message -> best KB article
+|   |   +-- semantic.py         # free sentence-embedding model: meaning-based matching
 |   |   +-- learning.py         # Technician-resolution to KB article drafting
-|   |   +-- training/           # intents.json, categories.json, templates.json
+|   |   +-- training/           # intents.json, categories.json, templates.json, articles.json, related_terms.json
 |   |
 |   +-- migrations/             # Alembic migration versions
 |   +-- routers/
@@ -398,7 +421,7 @@ relaydesk-ai-service-desk/
 |   |   +-- tickets.py          # Ticket lifecycle endpoints
 |   |   +-- users.py            # User management endpoints
 |   |
-|   +-- tests/                  # 80 pytest tests
+|   +-- tests/                  # 122 pytest tests
 |   +-- evals/                  # Chatbot evaluation scripts and case files
 |   +-- models.py               # SQLAlchemy ORM models
 |   +-- schemas.py              # Pydantic request/response schemas
@@ -406,6 +429,7 @@ relaydesk-ai-service-desk/
 |   +-- audit.py                # Audit logging
 |   +-- ratelimit.py            # In-memory rate limiter
 |   +-- seed.py                 # Demo data seeder
+|   +-- kb_library.py           # Built-in KB articles (synced on startup)
 |   +-- main.py                 # FastAPI app entry point
 |
 +-- frontend/

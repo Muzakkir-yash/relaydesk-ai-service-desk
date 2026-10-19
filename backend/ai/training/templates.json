@@ -520,7 +520,23 @@
             "remote desktop",
             "scanner",
             "speakers",
-            "battery"
+            "battery",
+            "camera",
+            "charger",
+            "touchpad",
+            "bluetooth",
+            "usb port",
+            "sound",
+            "fan",
+            "screen",
+            "pdf",
+            "powerpoint",
+            "adobe reader",
+            "windows update",
+            "hard drive",
+            "clipboard",
+            "projector",
+            "ethernet"
           ],
           "symptom": [
             "keeps crashing",
@@ -538,7 +554,13 @@
             "is down",
             "went down",
             "is down for me",
-            "keeps going down"
+            "keeps going down",
+            "is overheating",
+            "has no sound",
+            "is full",
+            "is blurry",
+            "is too loud",
+            "won't charge"
           ],
           "when": [
             "this morning",

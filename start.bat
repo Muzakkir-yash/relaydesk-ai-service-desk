@@ -10,7 +10,7 @@ if not exist "venv\Scripts\python.exe" (
     if errorlevel 1 goto :no_python
 )
 
-venv\Scripts\python.exe -c "import fastapi, sqlalchemy, alembic, sklearn, jose, bcrypt" >nul 2>&1
+venv\Scripts\python.exe -c "import fastapi, sqlalchemy, alembic, sklearn, jose, bcrypt, fastembed" >nul 2>&1
 if errorlevel 1 (
     echo [2/3] Installing required libraries ^(first run only, needs internet^)...
     venv\Scripts\python.exe -m pip install -r requirements.txt

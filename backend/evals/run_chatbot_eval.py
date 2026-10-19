@@ -10,6 +10,7 @@ back into the history, exactly like the chat page) and checks the final turn:
 Usage (from backend/, against a COPY of your database — reads only):
     python evals/run_chatbot_eval.py
     python evals/run_chatbot_eval.py --only phishing --verbose
+    python evals/run_chatbot_eval.py --set final_holdout --typos 2   # with spelling mistakes
 
 Uses the free offline engine. (Only if ENABLE_PAID_AI=true and a key is set would it
 call the paid Claude API — that is switched off in this project.)
@@ -26,6 +27,7 @@ if hasattr(sys.stdout, "reconfigure"):
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from ai.assistant import chat_turn  # noqa: E402
+from evals.typo_noise import add_typos  # noqa: E402
 from ai.client import ai_enabled  # noqa: E402
 from config import settings  # noqa: E402
 from database import SessionLocal  # noqa: E402
@@ -34,7 +36,11 @@ import models  # noqa: E402
 EVAL_DIR = os.path.dirname(os.path.abspath(__file__))
 CASE_SETS = {"main": "chatbot_cases.json", "holdout": "chatbot_holdout_cases.json", "fresh": "chatbot_fresh_cases.json",
              "fresh2": "chatbot_fresh2_cases.json", "fresh3": "chatbot_fresh3_cases.json",
-             "fresh4": "chatbot_fresh4_cases.json"}
+             "fresh4": "chatbot_fresh4_cases.json", "coverage": "chatbot_coverage_cases.json",
+             "coverage_holdout": "chatbot_coverage_holdout_cases.json", "final_holdout": "chatbot_final_holdout_cases.json",
+             "round2_holdout": "chatbot_round2_holdout_cases.json", "paraphrase": "chatbot_paraphrase_cases.json",
+             "paraphrase2": "chatbot_paraphrase2_cases.json",
+             "paraphrase3_holdout": "chatbot_paraphrase3_holdout_cases.json"}
 
 
 def load_articles():
@@ -47,10 +53,12 @@ def load_articles():
         db.close()
 
 
-async def run_case(case, articles):
+async def run_case(case, articles, typos=0):
     history = []
     result = None
-    for message in case["turns"]:
+    for turn, message in enumerate(case["turns"]):
+        if typos:
+            message = add_typos(message, typos, seed=f"{case['name']}:{turn}")
         history.append({"sender": "user", "text": message})
         result = await chat_turn(message, history, articles)
         history.append({"sender": "ai", "text": result["reply"]})
@@ -72,6 +80,7 @@ async def main():
                         help="main = cases used while improving the bot; holdout/fresh = cases for an honest score")
     parser.add_argument("--only", help="run cases whose name contains this text")
     parser.add_argument("--verbose", action="store_true", help="print every reply")
+    parser.add_argument("--typos", type=int, default=0, help="add this many spelling mistakes to every user message")
     args = parser.parse_args()
 
     cases = json.load(open(os.path.join(EVAL_DIR, CASE_SETS[args.set]), encoding="utf-8"))
@@ -83,7 +92,7 @@ async def main():
 
     totals, passed_cases = {}, 0
     for case in cases:
-        result, checks = await run_case(case, articles)
+        result, checks = await run_case(case, articles, args.typos)
         ok = all(checks.values())
         passed_cases += ok
         for name, value in checks.items():

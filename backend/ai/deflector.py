@@ -4,8 +4,12 @@ Provides instant self-service resolution using Knowledge Base articles or
 context-aware AI technical troubleshooting for any enterprise IT problem.
 """
 
+import json
+import math
+import os
 import re
-from typing import List, Dict, Any
+from functools import lru_cache
+from typing import List, Dict, Any, Optional
 
 from ai.client import ai_enabled, complete_json, complete_text
 
@@ -52,10 +56,18 @@ STOPWORDS = {
     "these", "those", "not", "no", "can", "cant", "cannot", "could", "would",
     "should", "please", "help", "need", "issue", "problem", "broken", "company",
     "get", "got", "how", "what", "why", "when", "where", "which", "there",
-    "some", "any", "all", "very", "just", "also", "now", "here"
+    "some", "any", "all", "very", "just", "also", "now", "here",
+    "work", "works", "working", "worked",
+    # Verbs and fillers that say nothing about *which* problem it is
+    "show", "shows", "showing", "shown", "say", "says", "saying", "keep", "keeps", "seem", "seems",
+    "tried", "trying", "getting", "gets", "something", "anything", "out"
 }
 
 NORMALIZATIONS = [
+    # Run-together typos: "cameranot work" -> "camera not work"
+    (r'\b([a-z]{4,})not\b', r'\1 not'),
+    (r'\bweb[\s-]*cam(?:era)?s?\b', 'webcam'),
+    (r'\bcam\b', 'camera'),
     (r'\bconnnected\b', 'connected'),
     (r'\bdisconnnected\b', 'disconnected'),
     (r'\bwi-fi\b', 'wifi'),
@@ -80,7 +92,103 @@ def normalize_query(text: str) -> str:
     return cleaned
 
 
-def _score_article(tokens: List[str], query_clean: str, art: Dict[str, Any]) -> float:
+RELATED_TERMS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "training", "related_terms.json")
+
+
+@lru_cache(maxsize=1)
+def _related_patterns() -> List[tuple]:
+    """(topic word, regex of its related words) from training/related_terms.json."""
+    if not os.path.exists(RELATED_TERMS_FILE):
+        return []
+    with open(RELATED_TERMS_FILE, encoding="utf-8") as f:
+        data = json.load(f)
+    patterns = []
+    for topic, related in data.items():
+        if topic.startswith("_") or not related:
+            continue
+        words = sorted((re.escape(w.lower()) for w in related), key=len, reverse=True)
+        patterns.append((topic, re.compile(r"\b(?:" + "|".join(words) + r")(?:s|es)?\b")))
+    return patterns
+
+
+def expand_related(text: str) -> str:
+    """Add the topic word for every related word in `text`, so the knowledge
+    search understands the problem even when the user never names it:
+    "my inbox is full of junk" is searched as "... email spam"."""
+    lowered = (text or "").lower()
+    topics = [topic for topic, pattern in _related_patterns()
+              if pattern.search(lowered) and not re.search(r"\b" + re.escape(topic) + r"\b", lowered)]
+    return f"{text} {' '.join(topics)}" if topics else text
+
+
+# (words in the query, words in an article title) — a query naming the topic
+# gets a +20 boost for articles about that topic
+TOPIC_BONUSES = [
+    (("wifi",), ("wifi",)),
+    (("vpn",), ("vpn",)),
+    (("password",), ("password",)),
+    (("teams",), ("teams",)),
+    (("outlook",), ("outlook",)),
+    (("printer",), ("printer",)),
+    (("won't turn on", "black screen", "power"), ("won't turn on",)),
+    (("monitor", "second screen", "external screen"), ("monitor",)),
+    (("bsod", "blue screen", "crash"), ("blue screen",)),
+    (("slow", "performance", "lag"), ("slow",)),
+    (("shared drive", "mapped drive", "sharepoint"), ("shared",)),
+    (("mfa", "2fa", "authenticator"), ("multi-factor",)),
+    (("camera", "webcam"), ("camera",)),
+    (("battery", "charging", "charger"), ("battery",)),
+    (("overheat", "fan", "too hot", "very hot", "so hot", "gets hot", "is hot", "heating up"), ("overheating",)),
+    (("keyboard", "keys", "shift", "caps lock", "num lock", "typing wrong", "types wrong"), ("keyboard",)),
+    (("mouse", "touchpad", "trackpad", "cursor"), ("mouse",)),
+    (("bluetooth", "airpods", "earbuds"), ("bluetooth",)),
+    (("sound", "speaker", "can't hear anything", "cant hear anything"), ("no sound",)),
+    (("usb",), ("usb device",)),
+    (("dock",), ("dock",)),
+    (("scan",), ("scan",)),
+    (("projector", "meeting room", "conference room"), ("projector",)),
+    (("windows update", "updates", "updating"), ("windows update",)),
+    (("disk", "storage", "space"), ("disk space",)),
+    # Not "office": it usually means the workplace ("office wifi", "office copier")
+    (("excel", "word", "powerpoint", "office app", "office 365", "microsoft 365"), ("office",)),
+    (("onedrive",), ("onedrive",)),
+    (("chrome", "edge", "browser", "website", "web page", "site"), ("browser",)),
+    (("pdf", "adobe"), ("pdf",)),
+    (("signature",), ("signature",)),
+    (("out of office", "automatic repl", "auto repl", "autoreply"), ("out-of-office",)),
+    (("spam", "junk"), ("spam",)),
+    (("outbox", "bounce", "attachment", "can't send", "cant send", "not sending", "won't send"), ("can't send",)),
+    (("calendar", "meeting invite", "shared mailbox"), ("calendar",)),
+    (("remote desktop", "rdp"), ("remote desktop",)),
+    (("bitlocker", "recovery key"), ("bitlocker",)),
+    (("ethernet", "lan cable", "lan port", "network cable", "wired"), ("ethernet",)),
+    (("share my screen", "share screen", "screen share", "sharing my screen", "screen sharing"), ("screen sharing",)),
+    (("copy", "paste", "clipboard"), ("copy and paste",)),
+    (("phone", "iphone", "android", "mobile"), ("phone",)),
+    (("hear me", "my voice", "my mic", "microphone"), ("microphone",)),
+    (("install",), ("install",)),
+]
+
+
+def keyword_weights(kb_articles: List[Dict[str, Any]]) -> Dict[str, float]:
+    """How much each word tells us about *which* article fits (0-1).
+    Words found in only a few articles ("bitlocker", "touchpad") keep full
+    weight; words found in many ("screen", "laptop", "windows") count less,
+    so "second screen not detected" doesn't match "Blue Screen of Death"."""
+    n = len(kb_articles)
+    if n == 0:
+        return {}
+    df: Dict[str, int] = {}
+    for art in kb_articles:
+        text = normalize_query(f"{art.get('title') or ''} {art.get('tags') or ''} {art.get('body') or ''}")
+        for word in set(re.findall(r'[a-z0-9]+', text)):
+            df[word] = df.get(word, 0) + 1
+    full = math.log(1 + n / 3)
+    return {word: min(1.0, math.log(1 + n / count) / full) for word, count in df.items()}
+
+
+def _score_article(tokens: List[str], query_clean: str, art: Dict[str, Any],
+                   weights: Optional[Dict[str, float]] = None) -> float:
     title_lower = normalize_query(art.get("title") or "")
     tags_lower = normalize_query(art.get("tags") or "")
     body_lower = normalize_query(art.get("body") or "")
@@ -89,41 +197,27 @@ def _score_article(tokens: List[str], query_clean: str, art: Dict[str, Any]) -> 
 
     # 1. Exact phrase matching in Title / Tags
     for token in tokens:
+        weight = weights.get(token, 1.0) if weights else 1.0
         # Title exact whole-word hit
         if re.search(r'\b' + re.escape(token) + r'\b', title_lower):
-            score += 10.0
+            score += 10.0 * weight
         # Tags exact whole-word hit
         if re.search(r'\b' + re.escape(token) + r'\b', tags_lower):
-            score += 8.0
+            score += 8.0 * weight
         # Body exact whole-word hit
         if re.search(r'\b' + re.escape(token) + r'\b', body_lower):
-            score += 1.0
+            score += 1.0 * weight
+
+    # Two-word phrases from the query ("second screen", "out of office" → "out office")
+    for first, second in zip(tokens, tokens[1:]):
+        phrase = f"{first} {second}"
+        if phrase in title_lower or phrase in tags_lower:
+            score += 8.0
 
     # 2. Multi-word phrase bonuses
-    if "wifi" in query_clean and "wifi" in title_lower:
-        score += 20.0
-    if "vpn" in query_clean and "vpn" in title_lower:
-        score += 20.0
-    if "password" in query_clean and "password" in title_lower:
-        score += 20.0
-    if "teams" in query_clean and "teams" in title_lower:
-        score += 20.0
-    if "outlook" in query_clean and "outlook" in title_lower:
-        score += 20.0
-    if "printer" in query_clean and "printer" in title_lower:
-        score += 20.0
-    if ("won't turn on" in query_clean or "black screen" in query_clean or "power" in query_clean) and "won't turn on" in title_lower:
-        score += 20.0
-    if ("monitor" in query_clean or "display" in query_clean) and "monitor" in title_lower:
-        score += 20.0
-    if ("bsod" in query_clean or "blue screen" in query_clean or "crash" in query_clean) and "blue screen" in title_lower:
-        score += 20.0
-    if ("slow" in query_clean or "performance" in query_clean or "lag" in query_clean) and "slow" in title_lower:
-        score += 20.0
-    if ("shared drive" in query_clean or "mapped drive" in query_clean or "sharepoint" in query_clean) and "shared" in title_lower:
-        score += 20.0
-    if ("mfa" in query_clean or "2fa" in query_clean or "authenticator" in query_clean) and "multi-factor" in title_lower:
-        score += 20.0
+    for query_words, title_words in TOPIC_BONUSES:
+        if any(re.search(r'\b' + re.escape(w), query_clean) for w in query_words) and any(w in title_lower for w in title_words):
+            score += 20.0
 
     # 3. Domain cross-contamination penalties
     # If query is clearly about WiFi, penalize VPN heavily and vice-versa
@@ -144,12 +238,90 @@ def _score_article(tokens: List[str], query_clean: str, art: Dict[str, Any]) -> 
         if any(w in title_lower for w in ["password", "printer", "vpn"]):
             score -= 30.0
 
+    # Camera problems vs screen sharing ("my camera shows a black screen in teams")
+    if any(w in query_clean for w in ["camera", "webcam"]) and "shar" not in query_clean:
+        if "screen sharing" in title_lower:
+            score -= 30.0
+
     # Printer vs Audio / VPN / Password
     if "printer" in query_clean:
         if any(w in title_lower for w in ["audio", "teams", "vpn", "password"]):
             score -= 40.0
 
     return max(0.0, score)
+
+
+KB_MATCH_SCORE = 12.0  # an article this strong is shown as the answer
+
+
+MATCH_CONFIDENCE = 0.25  # article-matcher probability (across all articles) to trust it
+MATCH_LEAD = 1.5  # ...and how far ahead of the second-best article it must be
+
+
+def matcher_ranking(text: str, kb_articles: List[Dict[str, Any]]) -> List[tuple]:
+    """(article, probability) from the trained article matcher, best first."""
+    if not re.search(r"[a-z]{3,}", (text or "").lower()):
+        return []  # "2", "ok", "?" — nothing to match an article on
+    from ai.article_matcher import article_matcher  # imports this module
+    matcher = article_matcher(kb_articles)
+    return matcher.ranking(expand_related(text), plain_text=text) if matcher else []
+
+
+def _is_confident(ranking: List[tuple]) -> bool:
+    if not ranking:
+        return False
+    runner_up = ranking[1][1] if len(ranking) > 1 else 0.0
+    return ranking[0][1] >= MATCH_CONFIDENCE and ranking[0][1] >= MATCH_LEAD * runner_up
+
+
+def confident_article(text: str, kb_articles: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+    """The article the trained matcher is sure answers `text`, else None."""
+    ranking = matcher_ranking(text, kb_articles)
+    return ranking[0][0] if _is_confident(ranking) else None
+
+
+KEYWORD_WEIGHT = 0.5  # a keyword score at the cap counts as much as matcher probability 1.0
+KEYWORD_CAP = 40.0
+FUSED_MIN = 0.4  # combined score an article needs to be shown
+KEYWORD_NOISE = 6.0  # keyword scores below this are chance overlaps ("error", "when")
+
+
+def choose_article(text: str, kb_articles: List[Dict[str, Any]], scored_articles: List[tuple]) -> Optional[Dict[str, Any]]:
+    """Pick the article to answer with by combining both signals. The trained
+    matcher understands new wording but can latch onto generic phrases
+    ("inbox is *full* of spam" → disk full); keyword scoring catches the
+    decisive word ("spam") but misreads others ("everything comes out in
+    capitals" → email signature). Adding the two lets each correct the other."""
+    ranking = matcher_ranking(text, kb_articles)
+    probability = {a["id"]: p for a, p in ranking}
+    keyword = {}
+    for score, art in scored_articles[:5]:
+        if score >= KEYWORD_NOISE:
+            keyword.setdefault(art["id"], score)
+    candidates = {a["id"]: a for a, _ in ranking}
+    candidates.update({a["id"]: a for _, a in scored_articles[:5]})
+
+    def fused(article_id):
+        return probability.get(article_id, 0.0) + KEYWORD_WEIGHT * min(keyword.get(article_id, 0.0), KEYWORD_CAP) / KEYWORD_CAP
+
+    best = max(candidates, key=fused, default=None)
+    if best is None or fused(best) < FUSED_MIN:
+        return None
+    return candidates[best]
+
+
+def rank_articles(query_clean: str, kb_articles: List[Dict[str, Any]],
+                  weights: Optional[Dict[str, float]] = None) -> List[tuple]:
+    """(score, article) pairs scoring above 5, best first."""
+    query_clean = expand_related(query_clean)
+    tokens = [t for t in re.findall(r'[a-z0-9]+', query_clean) if t not in STOPWORDS and len(t) > 1]
+    scored = []
+    for art in kb_articles:
+        score = _score_article(tokens, query_clean, art, weights)
+        if score > 5.0:
+            scored.append((score, art))
+    scored.sort(key=lambda x: x[0], reverse=True)
+    return scored
 
 
 def _generate_dynamic_it_solution(subject: str, description: str) -> dict:
@@ -220,6 +392,17 @@ def _generate_dynamic_it_solution(subject: str, description: str) -> dict:
             "3. Power cycle docking station: Unplug dock power adapter for 15 seconds, reconnect, and plug in the USB-C host cable.\n"
             "4. Restart graphics driver instantly: Press Windows Key + Ctrl + Shift + B (the screen will flicker and beep).\n"
             "5. Verify monitor input source (HDMI 1, DP 1) using the physical buttons on the monitor frame."
+        )
+    # 5b. Camera / Webcam
+    elif any(k in query for k in ["camera", "webcam"]):
+        title = "Webcam & Camera Troubleshooting"
+        steps = (
+            "1. Check for a physical privacy shutter or a camera key (often F8/F10 or a key with a camera icon) and make sure it's open/on.\n"
+            "2. Check Windows privacy settings: Windows Settings → Privacy & Security → Camera → turn ON 'Camera access' and 'Let apps access your camera'.\n"
+            "3. Close every other app that might be using the camera (Teams, Zoom, browser tabs) — only one app can use it at a time.\n"
+            "4. Test it in the Windows Camera app. If it works there, select the right camera in your meeting app's Settings → Devices.\n"
+            "5. For an external USB webcam, unplug it and plug it into a different USB port (not a hub).\n"
+            "6. Reinstall the driver: right-click Start → Device Manager → Cameras → right-click your camera → Uninstall device, then restart your PC."
         )
     # 6. Audio / Microphone / Teams / Zoom
     elif any(k in query for k in ["teams", "zoom", "audio", "microphone", "mic", "speaker", "headset", "sound", "camera", "webcam"]):
@@ -357,17 +540,22 @@ def _fallback_deflect(subject: str, description: str, kb_articles: List[Dict[str
     if not meaningful_tokens:
         meaningful_tokens = [w for w in raw_tokens if len(w) >= 2]
 
+    weights = keyword_weights(kb_articles)
     scored_articles = []
     for art in kb_articles:
-        score = _score_article(meaningful_tokens, query_clean, art)
+        score = _score_article(meaningful_tokens, query_clean, art, weights)
         scored_articles.append((score, art))
 
     scored_articles.sort(key=lambda x: x[0], reverse=True)
 
+    matched = confident_article(f"{subject} {description}", kb_articles)
+    if matched is not None:
+        scored_articles.insert(0, (KB_MATCH_SCORE, matched))
+
     if scored_articles:
         best_score, top_art = scored_articles[0]
         # High confidence match (score >= 12)
-        if best_score >= 12.0:
+        if best_score >= KB_MATCH_SCORE:
             return {
                 "can_resolve": True,
                 "answer": (
@@ -519,6 +707,7 @@ IT_PROBLEM_KEYWORDS = {
     # Hardware / Display / Peripherals
     "monitor", "display", "screen", "second screen", "hdmi", "displayport", "dock", "docking",
     "mouse", "keyboard", "bluetooth", "trackpad", "usb", "dongle", "headset", "audio", "microphone", "mic", "speaker",
+    "camera", "webcam",
     "printer", "printing", "print", "spooler", "paper jam",
     # System / OS / Software
     "bsod", "blue screen", "crash", "crashing", "crashed", "rebooting", "freeze", "freezing", "frozen",
@@ -526,7 +715,17 @@ IT_PROBLEM_KEYWORDS = {
     "teams", "zoom", "outlook", "email", "mailbox", "exchange", "excel", "word", "chrome", "edge",
     "shared drive", "mapped drive", "sharepoint", "onedrive", "access denied", "permission",
     "error 4", "error 5", "failed to connect", "not working", "won't open", "wont open", "won't start", "wont start",
-    "won't turn on", "wont turn on", "black screen", "flicker", "flickering"
+    "won't turn on", "wont turn on", "black screen", "flicker", "flickering",
+    # Everyday hardware
+    "battery", "charging", "charger", "overheat", "fan noise", "loud fan", "touchpad", "cursor", "usb", "no sound",
+    "brightness", "upside down", "scanner", "scan to", "projector", "no signal", "keys",
+    # Windows, files and apps
+    "windows update", "update failed", "update error", "updating", "disk space", "storage", "c drive", "onedrive", "deleted", "recover", "browser",
+    "website", "web page", "pdf", "adobe", "copy paste", "clipboard", "certificate", "not private", "remote desktop",
+    "rdp", "bitlocker", "recovery key", "my pin", "fingerprint", "windows hello", "trust relationship", "log in", "login",
+    "signature", "out of office", "spam", "junk", "outbox", "calendar", "shared mailbox", "unlicensed", "activate",
+    "ethernet", "network cable", "not responding", "keeps closing", "won't load", "wont load", "screen share",
+    "share my screen", "time zone", "clock", "hear me", "can't hear", "cant hear"
 }
 
 
@@ -534,16 +733,32 @@ SECURITY_INCIDENT_WORDS = [
     "phishing", "suspicious email", "suspicious link", "clicked a link", "clicked the link", "clicked on a link",
     "malware", "ransomware", "a virus", "got a virus", "hacked", "compromised", "someone logged into my", "scam email",
     # Lost or stolen devices can expose company data
-    "stolen", "got nicked", "lost my laptop", "lost my work", "lost my phone", "lost the laptop", "lost my company",
+    "stolen", "got nicked", "lost my laptop", "lost my work laptop", "lost my work phone", "lost my phone", "lost the laptop", "lost my company",
+    # Ransomware notes
+    "files are encrypted", "files have been encrypted", "files were encrypted", "bitcoin", "ransom", "pay to unlock",
+    "pay to get my files",
     # Unknown removable media is a classic malware route
     "found a usb", "usb i found", "found a memory stick", "found a flash drive", "found a pen drive", "unknown usb",
 ]
 
 HANDS_ON_WORDS = [
-    "cracked", "dropped my", "spilled", "water damage", "smashed", "broken screen", "screen is broken",
+    "cracked", "dropped my", "spilled", "shattered", "in pieces", "snapped", "fell off", "knocked off", "water damage", "smashed", "broken screen", "screen is broken",
     "can you install", "please install", "need installed", "install it for me", "need access to", "grant me access",
     "need access for", "new laptop request", "replacement laptop",
+    # Electrical damage is a safety issue, never a self-service fix
+    "frayed", "sparking", "sparks", "exposed wire", "wires exposed", "wire is exposed", "split and exposed", "cable is split",
+    "burning smell", "smells like burning", "smoke", "smoking", "swollen battery", "battery is swollen", "battery bulging",
+    # Liquid damage: switch off and get it to a technician, never troubleshoot
+    "spilt", "knocked water", "knocked my drink", "knocked coffee", "knocked tea", "water over", "coffee over", "tea over",
+    "drink over", "juice over", "liquid on", "liquid in", "got wet", "soaked", "dropped it in water", "fell in water",
 ]
+
+
+def has_safety_phrase(text: str) -> bool:
+    """A security incident or physical damage: these always go to a person,
+    whatever the intent model thinks the message is."""
+    cleaned = normalize_query(text)
+    return any(w in cleaned for w in SECURITY_INCIDENT_WORDS) or any(w in cleaned for w in HANDS_ON_WORDS)
 
 
 def _is_greeting_only(text: str) -> bool:
@@ -574,8 +789,8 @@ def _is_greeting_only(text: str) -> bool:
 
 def _has_it_problem(text: str) -> bool:
     """Returns True if the message appears to describe an actual IT problem."""
-    cleaned = normalize_query(text)
-    return any(kw in cleaned for kw in IT_PROBLEM_KEYWORDS)
+    cleaned = expand_related(normalize_query(text))
+    return any(re.search(r"\b" + re.escape(kw), cleaned) for kw in IT_PROBLEM_KEYWORDS)
 
 
 async def diagnose_and_triage(
@@ -683,6 +898,10 @@ async def diagnose_and_triage(
     if needs_hands_on:
         from ai.classifier import _fallback_classify
         cls = _fallback_classify(message, message)
+        if cls["category"] in ("other", "general"):
+            # Keywords can't tell ("the glass is shattered"); the trained category model can
+            from ai.intent_model import category_model
+            cls["category"] = category_model().predict(message)[0]
         return {
             "reply": (
                 "This needs a technician — it can't be fixed with self-service steps (it needs hands-on repair, "
@@ -712,8 +931,12 @@ async def diagnose_and_triage(
             "used_articles": []
         }
 
-    # 3. Check if user actually described an IT problem
-    if not _has_it_problem(message):
+    # 3. Check if user actually described an IT problem — either a known IT
+    # keyword, or wording that clearly matches a knowledge-base article
+    weights = keyword_weights(kb_articles)
+    own_matches = rank_articles(normalize_query(message), kb_articles, weights)
+    if (not _has_it_problem(message) and not (own_matches and own_matches[0][0] >= KB_MATCH_SCORE)
+            and not confident_article(message, kb_articles)):
         return {
             "reply": (
                 "I'm here to help with any technical or IT issues you're experiencing! "
@@ -755,14 +978,12 @@ async def diagnose_and_triage(
         for m in chat_history
         if m.get("sender_type") in ("user", "enduser") or m.get("sender") == "user"
     ]
-    context_clean = normalize_query(" ".join(user_turns[-3:] + ([message] if not user_turns or user_turns[-1] != message else [])))
-    scored_articles = []
-    tokens = [t for t in re.findall(r'[a-z0-9]+', context_clean) if t not in STOPWORDS and len(t) > 1]
-    for art in kb_articles:
-        score = _score_article(tokens, context_clean, art)
-        if score > 5.0:
-            scored_articles.append((score, art))
-    scored_articles.sort(key=lambda x: x[0], reverse=True)
+    context = " ".join(user_turns[-3:] + ([message] if not user_turns or user_turns[-1] != message else []))
+    context_clean = normalize_query(context)
+    scored_articles = rank_articles(context_clean, kb_articles, weights)
+    # The trained matcher knows many wordings of each problem; keyword
+    # scoring is the fallback for articles it isn't sure about
+    best_art = choose_article(context, kb_articles, scored_articles)
 
     used_articles = []
     reply_text = ""
@@ -794,8 +1015,7 @@ async def diagnose_and_triage(
 
     # Fallback if no LLM reply generated
     if not reply_text:
-        if scored_articles and scored_articles[0][0] >= 12.0:
-            best_art = scored_articles[0][1]
+        if best_art is not None:
             used_articles = [best_art]
             reply_text = (
                 f"I found a verified Knowledge Base solution for **{best_art.get('title')}**:\n\n"

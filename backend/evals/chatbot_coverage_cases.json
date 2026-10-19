@@ -1,0 +1,136 @@
+[
+  {"name": "webcam typo run-together", "turns": ["web cameranot work"], "expect_intent": ["troubleshoot"], "must_mention_any": ["privacy shutter", "camera access"]},
+  {"name": "camera black in teams", "turns": ["my camera shows a black screen in teams"], "expect_intent": ["troubleshoot"], "must_mention_any": ["privacy shutter", "camera access"]},
+  {"name": "cant find camera", "turns": ["laptop says we can't find your camera"], "expect_intent": ["troubleshoot"], "must_mention_any": ["privacy shutter", "camera access"]},
+  {"name": "webcam zoom", "turns": ["webcam not detected in zoom"], "expect_intent": ["troubleshoot"], "must_mention_any": ["privacy shutter", "camera access"]},
+  {"name": "cam not working", "turns": ["cam not working on my laptop"], "expect_intent": ["troubleshoot"], "must_mention_any": ["privacy shutter", "camera access"]},
+
+  {"name": "not charging", "turns": ["laptop plugged in but not charging"], "expect_intent": ["troubleshoot"], "must_mention_any": ["powercfg", "charger"]},
+  {"name": "battery drains", "turns": ["my battery drains really fast, dies in an hour"], "expect_intent": ["troubleshoot"], "must_mention_any": ["battery saver", "powercfg"]},
+  {"name": "charger light off", "turns": ["charger not working no light"], "expect_intent": ["troubleshoot"], "must_mention_any": ["powercfg", "wall socket"]},
+  {"name": "battery typo", "turns": ["batery not chargin"], "expect_intent": ["troubleshoot"], "must_mention_any": ["powercfg", "charger"]},
+
+  {"name": "overheating", "turns": ["my laptop is overheating"], "expect_intent": ["troubleshoot"], "must_mention_any": ["air vents", "vents"]},
+  {"name": "fan loud", "turns": ["the fan is super loud all the time"], "expect_intent": ["troubleshoot"], "must_mention_any": ["vents"]},
+  {"name": "laptop very hot", "turns": ["laptop getting very hot"], "expect_intent": ["troubleshoot"], "must_mention_any": ["vents"]},
+
+  {"name": "keyboard dead", "turns": ["keyboard not working"], "expect_intent": ["troubleshoot"], "must_mention_any": ["sticky keys", "num lock", "keyboard layout"]},
+  {"name": "wrong symbols", "turns": ["when I press shift 2 I get \" instead of @"], "expect_intent": ["troubleshoot"], "must_mention_any": ["keyboard layout", "layout"]},
+  {"name": "keys typing wrong", "turns": ["some keys type the wrong characters"], "expect_intent": ["troubleshoot"], "must_mention_any": ["layout"]},
+  {"name": "numpad", "turns": ["number pad on keyboard does nothing"], "expect_intent": ["troubleshoot"], "must_mention_any": ["num lock"]},
+
+  {"name": "mouse not moving", "turns": ["my mouse stopped working"], "expect_intent": ["troubleshoot"], "must_mention_any": ["receiver", "touchpad"]},
+  {"name": "touchpad", "turns": ["touchpad not responding"], "expect_intent": ["troubleshoot"], "must_mention_any": ["touchpad key", "touchpad"]},
+  {"name": "cursor jumping", "turns": ["the cursor keeps jumping around the screen"], "expect_intent": ["troubleshoot"], "must_mention_any": ["mouse mat", "sensor", "touchpad"]},
+
+  {"name": "bluetooth headphones", "turns": ["my bluetooth headphones won't connect"], "expect_intent": ["troubleshoot"], "must_mention_any": ["pairing mode", "remove device"]},
+  {"name": "airpods", "turns": ["cant pair airpods to laptop"], "expect_intent": ["troubleshoot"], "must_mention_any": ["pairing mode", "remove device"]},
+  {"name": "bluetooth missing", "turns": ["bluetooth option disappeared from settings"], "expect_intent": ["troubleshoot"], "must_mention_any": ["device manager", "pairing"]},
+
+  {"name": "no sound", "turns": ["no sound from my laptop"], "expect_intent": ["troubleshoot"], "must_mention_any": ["volume mixer", "output"]},
+  {"name": "cant hear anything", "turns": ["I can't hear anything from the speakers"], "expect_intent": ["troubleshoot"], "must_mention_any": ["volume mixer", "output"]},
+  {"name": "headphones no audio", "turns": ["headphones plugged in but no audio"], "expect_intent": ["troubleshoot"], "must_mention_any": ["volume mixer", "output"]},
+
+  {"name": "usb not recognized", "turns": ["usb device not recognized"], "expect_intent": ["troubleshoot"], "must_mention_any": ["different usb port", "universal serial bus"]},
+  {"name": "flash drive", "turns": ["my pen drive is not showing up"], "expect_intent": ["troubleshoot"], "must_mention_any": ["different usb port", "universal serial bus"]},
+
+  {"name": "dock", "turns": ["docking station stopped working"], "expect_intent": ["troubleshoot"], "must_mention_any": ["dock's power", "thunderbolt"]},
+  {"name": "usb-c dock", "turns": ["nothing works when i plug into the usb-c dock"], "expect_intent": ["troubleshoot"], "must_mention_any": ["dock's power", "thunderbolt"]},
+
+  {"name": "screen upside down", "turns": ["my screen is upside down"], "expect_intent": ["troubleshoot"], "must_mention_any": ["orientation"]},
+  {"name": "screen too dim", "turns": ["laptop screen is very dim"], "expect_intent": ["troubleshoot"], "must_mention_any": ["brightness"]},
+  {"name": "everything too big", "turns": ["everything on my screen is too big"], "expect_intent": ["troubleshoot"], "must_mention_any": ["scale"]},
+  {"name": "blurry text", "turns": ["text looks blurry on the display"], "expect_intent": ["troubleshoot"], "must_mention_any": ["resolution"]},
+
+  {"name": "scan to email", "turns": ["scan to email is not working on the copier"], "expect_intent": ["troubleshoot"], "must_mention_any": ["address book", "junk email"]},
+  {"name": "scanner", "turns": ["scanner not working"], "expect_intent": ["troubleshoot"], "must_mention_any": ["scan app", "address book"]},
+
+  {"name": "projector", "turns": ["projector in the meeting room shows no signal"], "expect_intent": ["troubleshoot"], "must_mention_any": ["duplicate", "input"]},
+  {"name": "meeting room tv", "turns": ["cant present my laptop on the conference room tv"], "expect_intent": ["troubleshoot"], "must_mention_any": ["duplicate", "input"]},
+
+  {"name": "email on phone", "turns": ["work email stopped working on my iphone"], "expect_intent": ["troubleshoot"], "must_mention_any": ["company portal", "reset account"]},
+  {"name": "new phone setup", "turns": ["how do i get outlook on my new android phone"], "expect_intent": ["troubleshoot"], "must_mention_any": ["company portal"]},
+
+  {"name": "windows update stuck", "turns": ["windows update stuck at 0%"], "expect_intent": ["troubleshoot"], "must_mention_any": ["working on updates", "windows update troubleshooter", "troubleshooters"]},
+  {"name": "update failed", "turns": ["updates keep failing with error 0x80070002"], "expect_intent": ["troubleshoot"], "must_mention_any": ["troubleshooters", "working on updates"]},
+  {"name": "dont turn off pc", "turns": ["pc stuck on working on updates don't turn off your computer"], "expect_intent": ["troubleshoot"], "must_mention_any": ["working on updates"]},
+
+  {"name": "disk full", "turns": ["my c drive is full"], "expect_intent": ["troubleshoot"], "must_mention_any": ["storage sense"]},
+  {"name": "low disk space", "turns": ["getting low disk space warning"], "expect_intent": ["troubleshoot"], "must_mention_any": ["storage sense"]},
+  {"name": "no storage", "turns": ["no space left on my computer"], "expect_intent": ["troubleshoot"], "must_mention_any": ["storage sense"]},
+
+  {"name": "excel crash", "turns": ["excel keeps crashing"], "expect_intent": ["troubleshoot"], "must_mention_any": ["safe mode", "quick repair"]},
+  {"name": "word not responding", "turns": ["word is not responding when I open a document"], "expect_intent": ["troubleshoot"], "must_mention_any": ["safe mode", "quick repair"]},
+  {"name": "powerpoint freezes", "turns": ["powerpoint freezes all the time"], "expect_intent": ["troubleshoot"], "must_mention_any": ["safe mode", "quick repair"]},
+
+  {"name": "office unlicensed", "turns": ["word says unlicensed product"], "expect_intent": ["troubleshoot"], "must_mention_any": ["file → account", "work account"]},
+  {"name": "office activate", "turns": ["office keeps asking me to activate"], "expect_intent": ["troubleshoot"], "must_mention_any": ["file → account", "work account"]},
+
+  {"name": "deleted file", "turns": ["I accidentally deleted an important file"], "expect_intent": ["troubleshoot"], "must_mention_any": ["recycle bin"]},
+  {"name": "saved over", "turns": ["i saved over my excel file, need the old version back"], "expect_intent": ["troubleshoot"], "must_mention_any": ["version history"]},
+  {"name": "unsaved word", "turns": ["word closed and i lost my unsaved document"], "expect_intent": ["troubleshoot"], "must_mention_any": ["recover unsaved"]},
+
+  {"name": "onedrive sync", "turns": ["onedrive is not syncing"], "expect_intent": ["troubleshoot"], "must_mention_any": ["pause syncing", "onedrive /reset"]},
+  {"name": "onedrive red x", "turns": ["red x on my onedrive files"], "expect_intent": ["troubleshoot"], "must_mention_any": ["pause syncing", "onedrive /reset"]},
+
+  {"name": "website not loading", "turns": ["a website won't load in chrome"], "expect_intent": ["troubleshoot"], "must_mention_any": ["ctrl+shift+delete", "incognito"]},
+  {"name": "browser slow", "turns": ["edge browser is very slow"], "expect_intent": ["troubleshoot"], "must_mention_any": ["ctrl+shift+delete", "incognito", "extension"]},
+  {"name": "browser popups", "turns": ["chrome keeps showing pop ups"], "expect_intent": ["troubleshoot", "escalate"], "must_mention_any": ["scam", "don't click", "extension", "security"]},
+
+  {"name": "cert error", "turns": ["site says your connection is not private"], "expect_intent": ["troubleshoot"], "must_mention_any": ["set time automatically", "proceed anyway"]},
+  {"name": "ssl", "turns": ["getting a certificate error on a website"], "expect_intent": ["troubleshoot"], "must_mention_any": ["set time automatically", "proceed anyway"]},
+
+  {"name": "install software how", "turns": ["how do I install zoom on my laptop"], "expect_intent": ["troubleshoot", "escalate"], "must_mention_any": ["company portal", "technician", "it team"]},
+  {"name": "need software", "turns": ["i need adobe reader installed"], "expect_intent": ["troubleshoot", "escalate"], "must_mention_any": ["company portal", "technician", "it team"]},
+
+  {"name": "app wont open", "turns": ["an application won't open on my pc"], "expect_intent": ["troubleshoot"], "must_mention_any": ["end task", "repair"]},
+  {"name": "program closes", "turns": ["the program closes as soon as i open it"], "expect_intent": ["troubleshoot"], "must_mention_any": ["end task", "repair"]},
+
+  {"name": "teams white screen", "turns": ["teams shows a white screen"], "expect_intent": ["troubleshoot"], "must_mention_any": ["teams.microsoft.com", "reset"]},
+  {"name": "teams sign in loop", "turns": ["teams keeps asking me to sign in"], "expect_intent": ["troubleshoot"], "must_mention_any": ["teams.microsoft.com", "sign out"]},
+  {"name": "teams messages", "turns": ["teams chat messages not showing up"], "expect_intent": ["troubleshoot"], "must_mention_any": ["teams.microsoft.com", "reset"]},
+
+  {"name": "screen share black", "turns": ["when i share my screen in teams others see black"], "expect_intent": ["troubleshoot"], "must_mention_any": ["hardware acceleration", "share a single window"]},
+  {"name": "cant share screen", "turns": ["can't share screen in zoom"], "expect_intent": ["troubleshoot"], "must_mention_any": ["hardware acceleration", "share a single window", "presenter"]},
+
+  {"name": "outlook search", "turns": ["outlook search is not finding my emails"], "expect_intent": ["troubleshoot"], "must_mention_any": ["indexing"]},
+  {"name": "outbox", "turns": ["my emails are stuck in the outbox"], "expect_intent": ["troubleshoot"], "must_mention_any": ["work offline", "outbox"]},
+  {"name": "cant send email", "turns": ["I can't send emails, they bounce back"], "expect_intent": ["troubleshoot"], "must_mention_any": ["work offline", "bounce", "ndr"]},
+  {"name": "attachment too big", "turns": ["email with big attachment won't send"], "expect_intent": ["troubleshoot"], "must_mention_any": ["share link", "25 mb"]},
+  {"name": "calendar", "turns": ["meetings are missing from my outlook calendar"], "expect_intent": ["troubleshoot"], "must_mention_any": ["update folder", "outlook on the web"]},
+  {"name": "shared mailbox", "turns": ["shared mailbox not showing in outlook"], "expect_intent": ["troubleshoot"], "must_mention_any": ["shared mailbox"]},
+  {"name": "out of office", "turns": ["how do I set up out of office"], "expect_intent": ["troubleshoot"], "must_mention_any": ["automatic replies"]},
+  {"name": "signature", "turns": ["how to add an email signature in outlook"], "expect_intent": ["troubleshoot"], "must_mention_any": ["signatures"]},
+  {"name": "spam", "turns": ["getting a lot of spam emails"], "expect_intent": ["troubleshoot"], "must_mention_any": ["report junk", "block sender"]},
+  {"name": "real email in junk", "turns": ["emails from my client go to junk folder"], "expect_intent": ["troubleshoot"], "must_mention_any": ["not junk", "safe senders"]},
+
+  {"name": "pdf", "turns": ["pdf files won't open"], "expect_intent": ["troubleshoot"], "must_mention_any": ["adobe", "open with"]},
+  {"name": "copy paste", "turns": ["copy paste not working"], "expect_intent": ["troubleshoot"], "must_mention_any": ["clipboard", "windows explorer"]},
+  {"name": "clock wrong", "turns": ["the time on my computer is wrong"], "expect_intent": ["troubleshoot"], "must_mention_any": ["set time automatically"]},
+  {"name": "rdp", "turns": ["remote desktop can't connect to my office pc"], "expect_intent": ["troubleshoot"], "must_mention_any": ["vpn first", "computer name"]},
+
+  {"name": "pin not working", "turns": ["my windows pin is not working"], "expect_intent": ["troubleshoot"], "must_mention_any": ["sign-in options", "i forgot my pin"]},
+  {"name": "trust relationship", "turns": ["trust relationship between this workstation and the primary domain failed"], "expect_intent": ["troubleshoot"], "must_mention_any": ["trust relationship"]},
+  {"name": "cant login laptop", "turns": ["can't log into my laptop"], "expect_intent": ["troubleshoot"], "must_mention_any": ["sign-in options", "self-service", "reset", "password"]},
+  {"name": "bitlocker", "turns": ["laptop is asking for a bitlocker recovery key"], "expect_intent": ["troubleshoot"], "must_mention_any": ["myaccount.microsoft.com", "key id"]},
+
+  {"name": "ethernet", "turns": ["network cable plugged in but no internet"], "expect_intent": ["troubleshoot"], "must_mention_any": ["ethernet", "port light", "another cable"]},
+  {"name": "lan", "turns": ["wired connection says unidentified network"], "expect_intent": ["troubleshoot"], "must_mention_any": ["ethernet", "port light"]},
+  {"name": "slow internet", "turns": ["internet is very slow today"], "expect_intent": ["troubleshoot"], "must_mention_any": ["speedtest", "router"]},
+
+  {"name": "virus popup", "turns": ["a popup says my pc is infected with a virus"], "expect_intent": ["escalate", "troubleshoot"], "must_mention_any": ["security", "don't click", "disconnect"]},
+  {"name": "phishing", "turns": ["I clicked a link in a suspicious email"], "expect_intent": ["escalate"], "must_mention_any": ["security"]},
+
+  {"name": "wifi", "turns": ["wifi keeps disconnecting"], "expect_intent": ["troubleshoot"], "must_mention_any": ["wi-fi", "wifi"]},
+  {"name": "vpn", "turns": ["vpn wont connect from home"], "expect_intent": ["troubleshoot"], "must_mention_any": ["vpn"]},
+  {"name": "password", "turns": ["forgot my password"], "expect_intent": ["troubleshoot", "escalate"], "must_mention_any": ["reset", "self-service"]},
+  {"name": "mfa", "turns": ["not getting the authenticator code"], "expect_intent": ["troubleshoot"], "must_mention_any": ["authenticator"]},
+  {"name": "printer", "turns": ["printer is offline"], "expect_intent": ["troubleshoot"], "must_mention_any": ["printer", "spooler"]},
+  {"name": "monitor", "turns": ["second screen not detected"], "expect_intent": ["troubleshoot"], "must_mention_any": ["windows key + p", "extend"]},
+  {"name": "slow pc", "turns": ["computer is very slow"], "expect_intent": ["troubleshoot"], "must_mention_any": ["task manager"]},
+  {"name": "bsod", "turns": ["got a blue screen error"], "expect_intent": ["troubleshoot", "escalate"], "must_mention_any": ["stop code", "blue screen"]},
+  {"name": "mic", "turns": ["people can't hear me on calls"], "expect_intent": ["troubleshoot"], "must_mention_any": ["microphone"]},
+  {"name": "outlook sync", "turns": ["outlook not receiving emails"], "expect_intent": ["troubleshoot"], "must_mention_any": ["outlook"]},
+  {"name": "shared drive", "turns": ["can't access the shared drive"], "expect_intent": ["troubleshoot"], "must_mention_any": ["map network drive", "shared", "drive"]},
+  {"name": "wont turn on", "turns": ["laptop won't turn on"], "expect_intent": ["troubleshoot", "escalate"], "must_mention_any": ["power", "battery"]}
+]

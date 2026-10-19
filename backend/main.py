@@ -13,7 +13,10 @@ from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from config import settings
-from database import run_migrations
+from database import SessionLocal, run_migrations
+import models
+from kb_library import sync_kb_library
+from ai.article_matcher import article_matcher
 from ai.intent_model import warm_up
 
 from routers import auth, tickets, kb, metrics, users, announcements, notifications
@@ -23,11 +26,25 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name
 # ── Bring the database schema up to date (Alembic) ───────────────
 run_migrations()
 
+# Add any built-in knowledge-base articles this database doesn't have yet
+# (never overwrites articles staff have edited)
+with SessionLocal() as _db:
+    sync_kb_library(_db, models)
+
+
+def _warm_up_chatbot() -> None:
+    warm_up()
+    with SessionLocal() as db:
+        matcher = article_matcher(tickets._published_articles(db))
+    if matcher:
+        matcher.ranking("warm up")  # loads the meaning model (first run: one-time download)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Load the chatbot's ML models in the background so the server is up
     # immediately and the first chat doesn't wait for training.
-    threading.Thread(target=warm_up, name="model-warm-up", daemon=True).start()
+    threading.Thread(target=_warm_up_chatbot, name="model-warm-up", daemon=True).start()
     yield
 
 

@@ -17,6 +17,14 @@
   </script>
 </head>
 <body style="background: #f4f6fa; font-family: sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh;">
-  <p style="color: #64748b; font-size: 14px;">Redirecting to NexusIT Service Desk...</p>
+  <p id="status" style="color: #64748b; font-size: 14px;">Redirecting to NexusIT Service Desk...</p>
+  <script>
+    // ES modules don't load from file:// — the app must be served by the backend
+    if (location.protocol === 'file:') {
+      document.getElementById('status').innerHTML =
+        'This page can\'t be opened as a file. Run <b>start.bat</b>, then open ' +
+        '<a href="http://localhost:8000">http://localhost:8000</a>.';
+    }
+  </script>
 </body>
 </html>
